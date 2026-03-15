@@ -1,0 +1,924 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Debris = game:GetService("Debris")
+local LocalPlayer = Players.LocalPlayer
+local activeTrolls = {}
+local trollFunctions = {}
+local UserInputService = game:GetService("UserInputService")
+
+local guiVisible = true
+local toggleKey = Enum.KeyCode.LeftControl
+
+local noclipEnabled = false
+
+-- UI Setup
+local Ball3rMM2 = Instance.new("ScreenGui")
+Ball3rMM2.Name = "Ball3rMM2"
+Ball3rMM2.Parent = game.CoreGui
+Ball3rMM2.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 420, 0, 560)
+MainFrame.Position = UDim2.new(0.8, 0, 0.5, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+MainFrame.BorderSizePixel = 1
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = Ball3rMM2
+
+-- Slide Frames
+local Slide1 = Instance.new("Frame")
+Slide1.Size = UDim2.new(1, 0, 1, -50) -- leave some space for slide button
+Slide1.Position = UDim2.new(0, 0, 0, 0)
+Slide1.BackgroundTransparency = 1
+Slide1.Parent = MainFrame
+
+local Slide2 = Instance.new("Frame")
+Slide2.Size = UDim2.new(1, 0, 1, -50)
+Slide2.Position = UDim2.new(0, 0, 0.2, 0)
+Slide2.BackgroundTransparency = 1
+Slide2.Visible = false -- start hidden
+Slide2.Parent = MainFrame
+
+local slideToggleButton = Instance.new("TextButton")
+slideToggleButton.Size = UDim2.new(0.9, 0, 0, 32)
+slideToggleButton.AnchorPoint = Vector2.new(0, 1)
+slideToggleButton.Position = UDim2.new(0.05, 0, 1, -8)
+slideToggleButton.Text = "Next ➡"
+slideToggleButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+slideToggleButton.TextColor3 = Color3.new(1,1,1)
+slideToggleButton.Font = Enum.Font.GothamBold
+slideToggleButton.TextSize = 14
+slideToggleButton.BorderSizePixel = 0
+slideToggleButton.Parent = MainFrame
+
+slideToggleButton.MouseButton1Click:Connect(function()
+	if Slide1.Visible then
+		Slide1.Visible = false
+		Slide2.Visible = true
+		slideToggleButton.Text = "⬅ Back"
+	else
+		Slide1.Visible = true
+		Slide2.Visible = false
+		slideToggleButton.Text = "Next ➡"
+	end
+end)
+
+local noclipButton = Instance.new("TextButton")
+noclipButton.Name = "NoclipButton"
+noclipButton.Size = UDim2.new(0.9, 0, 0, 40)
+noclipButton.Position = UDim2.new(0.05, 0, 0.1, 0)
+noclipButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+noclipButton.BorderSizePixel = 0
+noclipButton.Text = "Noclip: OFF"
+noclipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+noclipButton.TextSize = 14
+noclipButton.Font = Enum.Font.GothamBold
+noclipButton.Parent = Slide2
+
+noclipButton.MouseButton1Click:Connect(function()
+	noclipEnabled = not noclipEnabled
+
+RunService.Stepped:Connect(function()
+	if LocalPlayer.Character then
+		for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+			if part:IsA("BasePart") then
+				part.CanCollide = not noclipEnabled
+			end
+		end
+	end
+end)
+
+	if noclipEnabled then
+		noclipButton.Text = "Noclip: ON"
+		noclipButton.BackgroundColor3 = Color3.fromRGB(80, 170, 80)
+	else
+		noclipButton.Text = "Noclip: OFF"
+		noclipButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	end
+end)
+
+-- Fly variables
+local flyEnabled = false
+local flySpeed = 50
+local flyConnection
+local flyVelocity
+
+-- Fly button
+local flyButton = Instance.new("TextButton")
+flyButton.Name = "FlyButton"
+flyButton.Size = UDim2.new(0.9, 0, 0, 40)
+flyButton.Position = UDim2.new(0.05, 0, 0.25, 0) -- under noclip
+flyButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+flyButton.BorderSizePixel = 0
+flyButton.Text = "Fly: OFF"
+flyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+flyButton.TextSize = 14
+flyButton.Font = Enum.Font.GothamBold
+flyButton.Parent = Slide2
+
+flyButton.MouseButton1Click:Connect(function()
+    flyEnabled = not flyEnabled
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local humanoid = char and char:FindFirstChild("Humanoid")
+    if not hrp or not humanoid then return end
+
+    if flyEnabled then
+        flyButton.Text = "Fly: ON"
+        flyButton.BackgroundColor3 = Color3.fromRGB(80, 170, 80)
+        humanoid.PlatformStand = true
+
+        flyVelocity = Instance.new("BodyVelocity")
+        flyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+        flyVelocity.Velocity = Vector3.new(0,0,0)
+        flyVelocity.Parent = hrp
+
+        flyConnection = RunService.RenderStepped:Connect(function()
+            if flyEnabled and hrp then
+                local moveDirection = Vector3.new()
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                    moveDirection = moveDirection + hrp.CFrame.LookVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                    moveDirection = moveDirection - hrp.CFrame.LookVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                    moveDirection = moveDirection - hrp.CFrame.RightVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                    moveDirection = moveDirection + hrp.CFrame.RightVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                    moveDirection = moveDirection + Vector3.new(0,1,0)
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+                    moveDirection = moveDirection - Vector3.new(0,1,0)
+                end
+
+                if moveDirection.Magnitude > 0 then
+                    flyVelocity.Velocity = moveDirection.Unit * flySpeed
+                else
+                    flyVelocity.Velocity = Vector3.new(0,0,0)
+                end
+            end
+        end)
+
+    else
+        flyButton.Text = "Fly: OFF"
+        flyButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        humanoid.PlatformStand = false
+
+        if flyVelocity then flyVelocity:Destroy() flyVelocity = nil end
+        if flyConnection then flyConnection:Disconnect() flyConnection = nil end
+    end
+end)
+
+-- Player selector
+local PlayerLabel = Instance.new("TextLabel")
+PlayerLabel.Name = "PlayerLabel"
+PlayerLabel.Size = UDim2.new(1, 0, 0, 30)
+PlayerLabel.Position = UDim2.new(0, 0, 0.1, 0)
+PlayerLabel.BackgroundTransparency = 1
+PlayerLabel.Text = "Select Target Player:"
+PlayerLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+PlayerLabel.TextSize = 16
+PlayerLabel.Font = Enum.Font.Gotham
+PlayerLabel.Parent = MainFrame
+
+local PlayerDropdown = Instance.new("Frame")
+PlayerDropdown.Name = "PlayerDropdown"
+PlayerDropdown.Size = UDim2.new(0.9, 0, 0, 30)
+PlayerDropdown.Position = UDim2.new(0.05, 0, 0.16, 0)
+PlayerDropdown.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+PlayerDropdown.BorderSizePixel = 0
+PlayerDropdown.Parent = MainFrame
+
+local SelectedPlayer = Instance.new("TextLabel")
+SelectedPlayer.Name = "SelectedPlayer"
+SelectedPlayer.Size = UDim2.new(1, -30, 1, 0)
+SelectedPlayer.BackgroundTransparency = 1
+SelectedPlayer.Text = "No Player Selected"
+SelectedPlayer.TextColor3 = Color3.fromRGB(255, 255, 255)
+SelectedPlayer.TextSize = 14
+SelectedPlayer.Font = Enum.Font.Gotham
+SelectedPlayer.Parent = PlayerDropdown
+
+local DropdownButton = Instance.new("TextButton")
+DropdownButton.Name = "DropdownButton"
+DropdownButton.Size = UDim2.new(0, 30, 1, 0)
+DropdownButton.Position = UDim2.new(1, -30, 0, 0)
+DropdownButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+DropdownButton.BorderSizePixel = 0
+DropdownButton.Text = "▼"
+DropdownButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+DropdownButton.TextSize = 14
+DropdownButton.Font = Enum.Font.Gotham
+DropdownButton.Parent = PlayerDropdown
+
+local PlayerList = Instance.new("ScrollingFrame")
+PlayerList.Name = "PlayerList"
+PlayerList.Size = UDim2.new(1, 0, 0, 150)
+PlayerList.Position = UDim2.new(0, 0, 1, 0)
+PlayerList.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+PlayerList.BorderSizePixel = 0
+PlayerList.ScrollBarThickness = 4
+PlayerList.Visible = false
+PlayerList.ZIndex = 50
+SelectedPlayer.ZIndex =51
+DropdownButton.ZIndex = 51
+PlayerDropdown.ZIndex = 49
+PlayerList.Parent = PlayerDropdown
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = PlayerList
+UIListLayout.SortOrder = Enum.SortOrder.Name
+
+-- Variables
+local targetPlayer = nil
+local isDropdownOpen = false
+
+-- Dropdown functions
+local function updatePlayerList()
+    -- Clear existing
+    for _, child in pairs(PlayerList:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+
+    -- Add all players
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local playerButton = Instance.new("TextButton")
+            playerButton.Name = player.Name
+            playerButton.Size = UDim2.new(1, -4, 0, 30)
+            playerButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            playerButton.BorderSizePixel = 0
+            playerButton.Text = player.Name
+            playerButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+            playerButton.TextSize = 14
+            playerButton.Font = Enum.Font.Gotham
+            playerButton.Parent = PlayerList
+            playerButton.ZIndex = 52
+            playerButton.MouseButton1Click:Connect(function()
+                targetPlayer = player
+                SelectedPlayer.Text = player.Name
+                PlayerList.Visible = false
+                isDropdownOpen = false
+            end)
+        end
+    end
+
+    PlayerList.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y)
+end
+
+DropdownButton.MouseButton1Click:Connect(function()
+    isDropdownOpen = not isDropdownOpen
+    PlayerList.Visible = isDropdownOpen
+
+    if isDropdownOpen then
+        updatePlayerList()
+        DropdownButton.Text = "▲"
+    else
+        DropdownButton.Text = "▼"
+    end
+end)
+
+-- Utility Functions
+local function getPlayerCharacter(player)
+    if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        return player.Character
+    end
+    return nil
+end
+
+RunService.Stepped:Connect(function()
+	if noclipEnabled and LocalPlayer.Character then
+		for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+			if part:IsA("BasePart") and part.CanCollide == true then
+				part.CanCollide = false
+			end
+		end
+	end
+end)
+
+local SettingsFrame = Instance.new("Frame")
+SettingsFrame.Name = "SettingsFrame"
+SettingsFrame.Size = UDim2.new(1, -20, 1, -60)
+SettingsFrame.Position = UDim2.new(0, 10, 0, 50)
+SettingsFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+SettingsFrame.BorderSizePixel = 0
+SettingsFrame.Visible = false
+SettingsFrame.Parent = MainFrame
+
+local settingsButton = Instance.new("TextButton")
+settingsButton.Size = UDim2.new(0.25, 0, 0, 40)
+settingsButton.Position = UDim2.new(0, 0, 0, 0)
+settingsButton.Text = "⚙ Settings"
+settingsButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+settingsButton.TextColor3 = Color3.new(1,1,1)
+settingsButton.Font = Enum.Font.GothamBold
+settingsButton.TextSize = 14
+settingsButton.BorderSizePixel = 0
+settingsButton.Parent = MainFrame
+
+settingsButton.MouseButton1Click:Connect(function()
+	SettingsFrame.Visible = not SettingsFrame.Visible
+	local inSettings = SettingsFrame.Visible
+
+	-- Hide player selector
+	PlayerLabel.Visible = not inSettings
+	PlayerDropdown.Visible = not inSettings
+
+	-- Close dropdown if it was open
+	PlayerList.Visible = false
+	isDropdownOpen = false
+
+	for _, child in ipairs(MainFrame:GetChildren()) do
+		if child:IsA("TextButton")
+	and child ~= settingsButton
+	and child ~= slideToggleButton then
+			child.Visible = not SettingsFrame.Visible
+		end
+	end
+end)
+
+local SettingsTitle = Instance.new("TextLabel")
+SettingsTitle.Size = UDim2.new(1, 0, 0, 40)
+SettingsTitle.BackgroundTransparency = 1
+SettingsTitle.Text = "Settings"
+SettingsTitle.TextColor3 = Color3.new(1,1,1)
+SettingsTitle.Font = Enum.Font.GothamBold
+SettingsTitle.TextSize = 20
+SettingsTitle.Parent = SettingsFrame
+
+local bindButton = Instance.new("TextButton")
+bindButton.Size = UDim2.new(1, -20, 0, 40)
+bindButton.Position = UDim2.new(0, 10, 0, 60)
+bindButton.Text = "GUI Toggle Key: LeftControl"
+bindButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+bindButton.TextColor3 = Color3.new(1,1,1)
+bindButton.Font = Enum.Font.Gotham
+bindButton.TextSize = 14
+bindButton.BorderSizePixel = 0
+bindButton.Parent = SettingsFrame
+
+local waitingForBind = false
+
+bindButton.MouseButton1Click:Connect(function()
+	waitingForBind = true
+	bindButton.Text = "Press any key..."
+end)
+
+UserInputService.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+
+	-- Waiting for a new keybind
+	if waitingForBind then
+		if input.UserInputType == Enum.UserInputType.Keyboard
+			and input.KeyCode ~= Enum.KeyCode.Unknown
+			and input.KeyCode ~= Enum.KeyCode.Escape then
+
+			toggleKey = input.KeyCode
+			bindButton.Text = "GUI Toggle Key: " .. input.KeyCode.Name
+			waitingForBind = false
+		end
+		return
+	end
+
+	-- Normal GUI toggle
+	if input.UserInputType == Enum.UserInputType.Keyboard
+		and input.KeyCode == toggleKey then
+
+		guiVisible = not guiVisible
+		MainFrame.Visible = guiVisible
+	end
+end)
+
+-- Troll Functions
+trollFunctions.teleportTo = function()
+    if not targetPlayer then
+        return "Select a player first!"
+    end
+
+    local character = getPlayerCharacter(targetPlayer)
+    local localCharacter = getPlayerCharacter(LocalPlayer)
+
+    if character and localCharacter then
+        localCharacter.HumanoidRootPart.CFrame = character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)
+        return "Teleported to " .. targetPlayer.Name
+    else
+        return "Failed to get characters!"
+    end
+end
+
+trollFunctions.killAura = function()
+    if activeTrolls.killAura then
+        activeTrolls.killAura:Disconnect()
+        activeTrolls.killAura = nil
+        return "Kill aura disabled"
+    end
+
+    local function checkForKnife()
+        if LocalPlayer.Character and (LocalPlayer.Character:FindFirstChild("Knife") or LocalPlayer.Backpack:FindFirstChild("Knife")) then
+            return true
+        end
+        return false
+    end
+
+    local function stab(player)
+        local character = getPlayerCharacter(player)
+        local localCharacter = getPlayerCharacter(LocalPlayer)
+
+        if character and localCharacter and checkForKnife() then
+            local knife = LocalPlayer.Character:FindFirstChild("Knife") or LocalPlayer.Backpack:FindFirstChild("Knife")
+            if knife and knife.Parent ~= LocalPlayer.Character then
+                LocalPlayer.Character.Humanoid:EquipTool(knife)
+            end
+
+            -- Get close to target
+            local originalPosition = localCharacter.HumanoidRootPart.CFrame
+            localCharacter.HumanoidRootPart.CFrame = character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -2)
+
+            -- Trigger knife stab (depends on game mechanics)
+            local stabEvent = knife:FindFirstChild("StabEvent") or ReplicatedStorage:FindFirstChild("StabEvent")
+            if stabEvent and stabEvent:IsA("RemoteEvent") then
+                stabEvent:FireServer(player)
+            end
+
+            -- Return to original position
+            wait(0.2)
+            localCharacter.HumanoidRootPart.CFrame = originalPosition
+        end
+    end
+
+    activeTrolls.killAura = RunService.Heartbeat:Connect(function()
+        if not checkForKnife() then return end
+
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and getPlayerCharacter(player) then
+                local distance = (getPlayerCharacter(LocalPlayer).HumanoidRootPart.Position - 
+                                 getPlayerCharacter(player).HumanoidRootPart.Position).Magnitude
+
+                if distance < 20 then
+                    stab(player)
+                    wait(1) -- Small cooldown between stabs
+                end
+            end
+        end
+    end)
+
+    return "Kill aura enabled - will stab nearby players when you're murderer"
+end
+
+local afkEnabled = false
+trollFunctions.afkFarm = function()
+    afkEnabled = not afkEnabled
+
+    if afkEnabled then
+        task.spawn(function()
+            while afkEnabled do
+                task.wait(1)
+                local char = game.Players.LocalPlayer.Character
+                local invisWall = workspace:FindFirstChild("Lobby") 
+                    and workspace.Lobby:FindFirstChild("InvisWalls") 
+                    and workspace.Lobby.InvisWalls:FindFirstChild("Invis")
+
+                if char and char:FindFirstChild("HumanoidRootPart") and invisWall then
+                    char:MoveTo(invisWall.Position)
+                end
+            end
+        end)
+        return "AFK Farm: ENABLED"
+    else
+        return "AFK Farm: DISABLED"
+    end
+end
+
+local flingEnabled = false
+local flingConnection
+local flingForce
+
+trollFunctions.flingyourself = function()
+    flingEnabled = not flingEnabled
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+    if not hrp then
+        flingEnabled = false
+        return "Character not ready"
+    end
+
+    if flingEnabled then
+        -- Clean old forces
+        if flingForce then flingForce:Destroy() end
+
+        -- Velocity fling
+        local bv = Instance.new("BodyVelocity")
+        bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+        bv.Velocity = Vector3.new(0, 0, 0)
+        bv.Parent = hrp
+
+        -- Angular fling (this is the key part)
+        local bav = Instance.new("BodyAngularVelocity")
+        bav.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+        bav.AngularVelocity = Vector3.new(
+            math.random(30, 60),
+            math.random(30, 60),
+            math.random(30, 60)
+        )
+        bav.Parent = hrp
+
+        flingForce = {bv, bav}
+
+        -- Update velocity while moving
+        flingConnection = RunService.Heartbeat:Connect(function()
+            if hrp then
+                bv.Velocity = hrp.CFrame.LookVector * 120 + Vector3.new(0, 80, 0)
+            end
+        end)
+
+        return "FLING ENABLED (walk into players)"
+    else
+        -- Disable fling
+        if flingConnection then
+            flingConnection:Disconnect()
+            flingConnection = nil
+        end
+
+        if flingForce then
+            for _, v in ipairs(flingForce) do
+                if v then v:Destroy() end
+            end
+            flingForce = nil
+        end
+
+        return "FLING DISABLED"
+    end
+end
+
+local mapNames = {
+    "MilBase", "House", "Office", "Bank", "Biolab", "Factory", "Hospital",
+  "ResearchFacility", "PoliceStation", "Theatre", "Hotel", "Workshop", "Logcabin", "BeachResort", "Yacht"
+}
+
+local function getCurrentMap()
+    for _, name in ipairs(mapNames) do
+        local map = workspace:FindFirstChild(name)
+        if map and map:IsA("Model") then
+            return map
+        end
+    end
+    return nil
+end
+
+trollFunctions.tpToMap = function()
+    local map = getCurrentMap()
+    local char = game.Players.LocalPlayer.Character
+
+    if map and char and char:FindFirstChild("HumanoidRootPart") then
+        local mapCenterCFrame = map:GetBoundingBox()
+        char:SetPrimaryPartCFrame(CFrame.new(mapCenterCFrame.Position + Vector3.new(0, 5, 0)))
+        return "Teleported to: " .. map.Name
+    else
+        return "Failed: No map found or character missing"
+    end
+end
+
+trollFunctions.tpToLobby = function()
+    local char = game.Players.LocalPlayer.Character
+    local lobby = workspace:FindFirstChild("Lobby")
+    local spawns = lobby and lobby:FindFirstChild("Spawns")
+    local spawnLocation = spawns and (spawns:FindFirstChild("SpawnLocation") or spawns:FindFirstChild("Spawn"))
+
+    if char and char:FindFirstChild("HumanoidRootPart") and spawnLocation then     
+        char:MoveTo(spawnLocation.Position)
+        return "Teleported to Lobby Spawn"
+    else
+        return "Spawn or character not found"
+    end
+end
+
+trollFunctions.flingPlayer = function()
+    if not targetPlayer then
+        return "Select a player first!"
+    end
+
+    local character = getPlayerCharacter(targetPlayer)
+    local localCharacter = getPlayerCharacter(LocalPlayer)
+
+    if character and localCharacter then
+        -- Store original settings
+        local oldVelocity = localCharacter.HumanoidRootPart.Velocity
+        local oldPosition = localCharacter.HumanoidRootPart.CFrame
+
+        -- Apply extreme velocity to fling the player
+        localCharacter.HumanoidRootPart.Velocity = Vector3.new(0, 5000, 0)
+        localCharacter.HumanoidRootPart.CFrame = character.HumanoidRootPart.CFrame
+
+        -- Wait briefly for physics to apply
+        wait(0.2)
+
+        -- Restore original settings
+        localCharacter.HumanoidRootPart.Velocity = oldVelocity
+        localCharacter.HumanoidRootPart.CFrame = oldPosition
+
+        return "Flung " .. targetPlayer.Name
+    else
+        return "Failed to get characters!"
+    end
+end
+
+trollFunctions.annoyPlayer = function()
+    if not targetPlayer then
+        return "Select a player first!"
+    end
+
+    if activeTrolls.annoyPlayer then
+        activeTrolls.annoyPlayer:Disconnect()
+        activeTrolls.annoyPlayer = nil
+        return "Stopped annoying player"
+    end
+
+    local character = getPlayerCharacter(targetPlayer)
+    local localCharacter = getPlayerCharacter(LocalPlayer)
+
+    if character and localCharacter then
+        local positions = {
+            CFrame.new(0, 0, -3),  -- Front
+            CFrame.new(0, 0, 3),   -- Back
+            CFrame.new(-3, 0, 0),  -- Left
+            CFrame.new(3, 0, 0),   -- Right
+            CFrame.new(0, 3, 0),   -- Above
+        }
+
+        local posIndex = 1
+
+        activeTrolls.annoyPlayer = RunService.Heartbeat:Connect(function()
+            if getPlayerCharacter(targetPlayer) and getPlayerCharacter(LocalPlayer) then
+                -- Teleport around the target player
+                localCharacter.HumanoidRootPart.CFrame = 
+                    character.HumanoidRootPart.CFrame * positions[posIndex]
+
+                -- Cycle through positions
+                posIndex = posIndex + 1
+                if posIndex > #positions then
+                    posIndex = 1
+                end
+
+                -- Small delay to make it less intensive
+                wait(0.1)
+            else
+                activeTrolls.annoyPlayer:Disconnect()
+                activeTrolls.annoyPlayer = nil
+            end
+        end)
+
+        return "Now annoying " .. targetPlayer.Name
+    else
+        return "Failed to get characters!"
+    end
+end
+
+trollFunctions.stealRole = function()
+    if activeTrolls.stealRole then
+        activeTrolls.stealRole:Disconnect()
+        activeTrolls.stealRole = nil
+        return "Stopped trying to steal roles"
+    end
+
+    local function checkAndStealRole()
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and getPlayerCharacter(player) then
+                -- Check for murderer
+                if player.Character:FindFirstChild("Knife") or player.Backpack:FindFirstChild("Knife") then
+                    -- Attempt to steal the knife (implementation would depend on game mechanics)
+                    local knife = player.Character:FindFirstChild("Knife") or player.Backpack:FindFirstChild("Knife")
+                    if knife then
+                        -- This is simplified and would need actual game-specific implementation
+                        local localCharacter = getPlayerCharacter(LocalPlayer)
+                        if localCharacter then
+                            localCharacter.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame
+                            -- Hypothetical way to transfer the tool
+                            knife.Parent = LocalPlayer.Backpack
+                            return "Stole murderer role from " .. player.Name
+                        end
+                    end
+                end
+
+                -- Check for sheriff
+                if player.Character:FindFirstChild("Gun") or player.Backpack:FindFirstChild("Gun") then
+                    -- Attempt to steal the gun (implementation would depend on game mechanics)
+                    local gun = player.Character:FindFirstChild("Gun") or player.Backpack:FindFirstChild("Gun")
+                    if gun then
+                        -- This is simplified and would need actual game-specific implementation
+                        local localCharacter = getPlayerCharacter(LocalPlayer)
+                        if localCharacter then
+                            localCharacter.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame
+                            -- Hypothetical way to transfer the tool
+                            gun.Parent = LocalPlayer.Backpack
+                            return "Stole sheriff role from " .. player.Name
+                        end
+                    end
+                end
+            end
+        end
+        return nil
+    end
+
+    activeTrolls.stealRole = RunService.Heartbeat:Connect(function()
+        local result = checkAndStealRole()
+        if result then
+            -- Show result in notification
+            local notification = Instance.new("TextLabel")
+            notification.Name = "Notification"
+            notification.Size = UDim2.new(1, 0, 0, 30)
+            notification.Position = UDim2.new(0, 0, 0.85, 0)
+            notification.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            notification.BorderSizePixel = 0
+            notification.Text = result
+            notification.TextColor3 = Color3.fromRGB(0, 255, 0)
+            notification.TextSize = 14
+            notification.Font = Enum.Font.Gotham
+            notification.Parent = MainFrame
+
+            -- Remove notification after a few seconds
+            wait(3)
+            notification:Destroy()
+         end
+
+        wait(1)
+    end)
+
+    return "Now attempting to steal roles"
+end
+
+local espEnabled = false
+local espObjects = {}
+
+-- Clean up ESP
+local function clearESP()
+    for _, adorn in pairs(espObjects) do
+        adorn:Destroy()
+    end
+    espObjects = {}
+end
+
+-- Create box
+local function createESPBox(char, color)
+    local head = char:FindFirstChild("Head")
+    if head then
+        local box = Instance.new("BoxHandleAdornment")
+        box.Size = Vector3.new(4, 6, 2)
+        box.Adornee = head
+        box.AlwaysOnTop = true
+        box.ZIndex = 10
+        box.Transparency = 0.3
+        box.Color3 = color
+        box.Name = "ESPBox"
+        box.Parent = head
+        table.insert(espObjects, box)
+    end
+end
+
+-- Get role (based on item/tool)
+local function getRole(player)
+    local backpack = player:FindFirstChild("Backpack")
+    local char = player.Character
+
+    if char then
+        if char:FindFirstChild("Knife") then return "Murderer" end
+        if char:FindFirstChild("Gun") then return "Sheriff" end
+    end
+    if backpack then
+        if backpack:FindFirstChild("Knife") then return "Murderer" end
+        if backpack:FindFirstChild("Gun") then return "Sheriff" end
+    end
+    return "Innocent"
+end
+
+-- Update ESP constantly
+RunService.RenderStepped:Connect(function()
+    if espEnabled then
+        clearESP()
+
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local role = getRole(player)
+                local color = role == "Murderer" and Color3.fromRGB(255, 0, 0)
+                    or role == "Sheriff" and Color3.fromRGB(0, 255, 0)
+                    or Color3.fromRGB(0, 170, 255)
+
+                createESPBox(player.Character, color)
+            end
+        end
+    else
+        clearESP()
+    end
+end)
+
+-- Create UI buttons
+local function createButton(name, position, callback)
+    local button = Instance.new("TextButton")
+    button.Name = name
+    button.Size = UDim2.new(0.9, 0, 0, 35)
+    button.Position = position
+    button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    button.BorderSizePixel = 0
+    button.Text = name
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.TextSize = 14
+    button.Font = Enum.Font.GothamSemibold
+    button.Parent = Slide1
+
+    button.MouseEnter:Connect(function()
+        button.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    end)
+
+    button.MouseLeave:Connect(function()
+        button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    end)
+
+    button.MouseButton1Click:Connect(function()
+        local result = callback()
+
+        -- Show result in notification
+        local notification = Instance.new("TextLabel")
+        notification.Name = "Notification"
+        notification.Size = UDim2.new(1, 0, 0, 30)
+        notification.Position = UDim2.new(0, 0, 0.85, 0)
+        notification.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        notification.BorderSizePixel = 0
+        notification.Text = result or "Action completed!"
+        notification.TextColor3 = Color3.fromRGB(0, 255, 0)
+        notification.TextSize = 14
+        notification.Font = Enum.Font.Gotham
+        notification.Parent = MainFrame
+
+        -- Remove notification after a few seconds
+        delay(3, function()
+            notification:Destroy()
+        end)
+    end)
+
+    return button
+end
+
+trollFunctions.toggleESP = function()
+    espEnabled = not espEnabled
+
+    return espEnabled and "ESP: ENABLED" or "ESP: DISABLED"
+end
+
+-- Create buttons for troll functions
+local buttonY = 0.25
+local buttonSpacing = 0.075
+local buttons = {
+    {name = "Teleport To", func = trollFunctions.teleportTo},
+    {name = "Kill Aura", func = trollFunctions.killAura},
+    {name = "AFK Farm", func = trollFunctions.afkFarm},
+    {name = "Fling Yourself", func = trollFunctions.flingyourself},
+    {name = "Map (Teleport to Current)", func = trollFunctions.tpToMap},
+    {name = "Lobby (Teleport to Spawn)", func = trollFunctions.tpToLobby},
+    {name = "Fling Player", func = trollFunctions.flingPlayer},
+    {name = "Annoy Player", func = trollFunctions.annoyPlayer},
+    {name = "Steal Role", func = trollFunctions.stealRole},
+    {name = "ESP (Toggle)", func = trollFunctions.toggleESP}
+}
+
+for i, button in ipairs(buttons) do
+    createButton(button.name, UDim2.new(0.05, 0, buttonY, 0), button.func)
+    buttonY = buttonY + buttonSpacing
+end
+
+-- Close button
+local closeButton = Instance.new("TextButton")
+closeButton.Name = "CloseButton"
+closeButton.Size = UDim2.new(0.1, 0, 0, 40)
+closeButton.Position = UDim2.new(0.9, 0, 0, 0)
+closeButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+closeButton.BorderSizePixel = 0
+closeButton.Text = "X"
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.TextSize = 18
+closeButton.Font = Enum.Font.GothamBold
+closeButton.Parent = MainFrame
+
+closeButton.MouseButton1Click:Connect(function()
+    -- Stop all active trolls
+    for _, connection in pairs(activeTrolls) do
+        if typeof(connection) == "RBXScriptConnection" then
+            connection:Disconnect()
+        end
+    end
+
+    Ball3rMM2:Destroy()
+end)
+
+-- Auto-update player list when players join/leave
+Players.PlayerAdded:Connect(updatePlayerList)
+Players.PlayerRemoving:Connect(updatePlayerList)
+
+print("LETS GET BALLING")
