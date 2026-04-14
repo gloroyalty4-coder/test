@@ -1,126 +1,128 @@
--- Custom Universal Animation GUI (like the screenshot)
--- Features: Animation ID Player, Categories, Stop Animation, Basic Fly (Z key)
+-- Simple Universal Troll Script by Grok (harmless version)
+-- Works in most games that allow client-side scripts
 
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 
-local currentTrack = nil
+-- Create ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "TrollHub"
+screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.ResetOnSpawn = false
 
--- Function to play animation
-local function playAnimation(id)
-    if currentTrack then
-        currentTrack:Stop()
-    end
-    
-    local anim = Instance.new("Animation")
-    anim.AnimationId = "rbxassetid://" .. tostring(id)
-    
-    currentTrack = humanoid:LoadAnimation(anim)
-    currentTrack:Play()
-end
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 250, 0, 300)
+frame.Position = UDim2.new(0.8, 0, 0.2, 0)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
 
--- Simple GUI using Synapse/Fluxus/Krnl style (ScreenGui)
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Parent = player:WaitForChild("PlayerGui")
-ScreenGui.ResetOnSpawn = false
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+title.Text = "😈 Simple Troll Hub 😈"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.TextScaled = true
+title.Parent = frame
 
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 350, 0, 450)
-MainFrame.Position = UDim2.new(1, -370, 0.5, -225)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-MainFrame.BorderSizePixel = 0
-MainFrame.Parent = ScreenGui
+-- Chat Spam Button
+local btn1 = Instance.new("TextButton")
+btn1.Size = UDim2.new(0.9, 0, 0, 40)
+btn1.Position = UDim2.new(0.05, 0, 0.2, 0)
+btn1.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+btn1.Text = "Spam Chat (Silly)"
+btn1.TextColor3 = Color3.new(1, 1, 1)
+btn1.Parent = frame
 
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-Title.Text = "ANIMATION ID PLAYER"
-Title.TextColor3 = Color3.new(1,1,1)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 16
-Title.Parent = MainFrame
-
--- Animation ID Box
-local IDBox = Instance.new("TextBox")
-IDBox.Size = UDim2.new(0.9, 0, 0, 35)
-IDBox.Position = UDim2.new(0.05, 0, 0.12, 0)
-IDBox.PlaceholderText = "PASTE ID HERE"
-IDBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-IDBox.TextColor3 = Color3.new(1,1,1)
-IDBox.Parent = MainFrame
-
-local PlayBtn = Instance.new("TextButton")
-PlayBtn.Size = UDim2.new(0.4, 0, 0, 35)
-PlayBtn.Position = UDim2.new(0.55, 0, 0.12, 0)
-PlayBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-PlayBtn.Text = "PLAY"
-PlayBtn.TextColor3 = Color3.new(1,1,1)
-PlayBtn.Parent = MainFrame
-
-PlayBtn.MouseButton1Click:Connect(function()
-    local id = tonumber(IDBox.Text)
-    if id then
-        playAnimation(id)
+btn1.MouseButton1Click:Connect(function()
+    for i = 1, 20 do
+        game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer("trolled by grok lol 😂 " .. math.random(100, 999), "All")
+        wait(0.3)
     end
 end)
 
--- Stop Button
-local StopBtn = Instance.new("TextButton")
-StopBtn.Size = UDim2.new(0.4, 0, 0, 35)
-StopBtn.Position = UDim2.new(0.05, 0, 0.22, 0)
-StopBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-StopBtn.Text = "STOP ANIMATION"
-StopBtn.TextColor3 = Color3.new(1,1,1)
-StopBtn.Parent = MainFrame
+-- Spin Character Button
+local btn2 = Instance.new("TextButton")
+btn2.Size = UDim2.new(0.9, 0, 0, 40)
+btn2.Position = UDim2.new(0.05, 0, 0.35, 0)
+btn2.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+btn2.Text = "Spin Like Crazy"
+btn2.TextColor3 = Color3.new(1, 1, 1)
+btn2.Parent = frame
 
-StopBtn.MouseButton1Click:Connect(function()
-    if currentTrack then
-        currentTrack:Stop()
+btn2.MouseButton1Click:Connect(function()
+    if humanoid then
+        for i = 1, 50 do
+            character:WaitForChild("HumanoidRootPart").CFrame = character.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(30), 0)
+            wait(0.05)
+        end
     end
 end)
 
--- Categories (example buttons - you can add more)
-local categories = {
-    ["Needy Hips"] = 1234567890,   -- replace with real IDs
-    ["Show and Split"] = 9876543210,
-    ["Vertical Leg Spread"] = 111222333,
-    ["Playful Cat"] = 444555666,
-    ["Needy"] = 777888999,
-    ["Seizure"] = 1011121314,
-}
+-- Super Jump Spam
+local btn3 = Instance.new("TextButton")
+btn3.Size = UDim2.new(0.9, 0, 0, 40)
+btn3.Position = UDim2.new(0.05, 0, 0.5, 0)
+btn3.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+btn3.Text = "Super Jump Spam"
+btn3.TextColor3 = Color3.new(1, 1, 1)
+btn3.Parent = frame
 
-local yOffset = 0.32
-for name, id in pairs(categories) do
-    local Btn = Instance.new("TextButton")
-    Btn.Size = UDim2.new(0.9, 0, 0, 30)
-    Btn.Position = UDim2.new(0.05, 0, yOffset, 0)
-    Btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    Btn.Text = name
-    Btn.TextColor3 = Color3.fromRGB(255, 100, 200)
-    Btn.TextXAlignment = Enum.TextXAlignment.Left
-    Btn.Parent = MainFrame
-    
-    Btn.MouseButton1Click:Connect(function()
-        playAnimation(id)
-    end)
-    
-    yOffset = yOffset + 0.08
-end
-
--- Hotkeys
-UserInputService.InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.Z then
-        -- Toggle simple fly (basic version)
-        print("Fly toggled (add full fly script if you want)")
-    elseif input.KeyCode == Enum.KeyCode.G then
-        MainFrame.Visible = not MainFrame.Visible
+btn3.MouseButton1Click:Connect(function()
+    for i = 1, 30 do
+        if humanoid then
+            humanoid.JumpPower = 200
+            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+        wait(0.2)
     end
+    if humanoid then humanoid.JumpPower = 50 end
 end)
 
-print("Animation GUI loaded! Press G to toggle menu | Z for fly (basic)")
+-- Fake Notification
+local btn4 = Instance.new("TextButton")
+btn4.Size = UDim2.new(0.9, 0, 0, 40)
+btn4.Position = UDim2.new(0.05, 0, 0.65, 0)
+btn4.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+btn4.Text = "Fake Admin Message"
+btn4.TextColor3 = Color3.new(1, 1, 1)
+btn4.Parent = frame
+
+btn4.MouseButton1Click:Connect(function()
+    StarterGui:SetCore("SendNotification", {
+        Title = "ADMIN";
+        Text = "You have been trolled by Grok 😂";
+        Duration = 5;
+    })
+end)
+
+-- Close Button
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0.2, 0, 0, 30)
+closeBtn.Position = UDim2.new(0.8, 0, 0, 5)
+closeBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+closeBtn.Text = "X"
+closeBtn.TextColor3 = Color3.new(1, 1, 1)
+closeBtn.Parent = frame
+
+closeBtn.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
+end)
+
+print("Troll Hub loaded! Have fun (but don't be toxic)")
+
+-- Bonus: Random funny sound if the game has sound service (might not work everywhere)
+spawn(function()
+    wait(2)
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxassetid://131057809" -- rickroll or change to any asset id you like
+    sound.Volume = 0.5
+    sound.Parent = workspace
+    -- sound:Play()  -- uncomment if you want auto sound
+end)
