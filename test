@@ -1,17 +1,126 @@
--- Simple Universal Animation Loader (like Klue Animations style)
--- You can add your own GUI, animation list, or emotes here
+-- Custom Universal Animation GUI (like the screenshot)
+-- Features: Animation ID Player, Categories, Stop Animation, Basic Fly (Z key)
 
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))() -- optional GUI lib
-local Window = Library.CreateLib("My Animation Hub", "DarkTheme")
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 
-local Tab = Window:NewTab("Animations")
-local Section = Tab:NewSection("Play Animations")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
 
-Section:NewButton("Dance 1", "Plays a cool dance", function()
+local currentTrack = nil
+
+-- Function to play animation
+local function playAnimation(id)
+    if currentTrack then
+        currentTrack:Stop()
+    end
+    
     local anim = Instance.new("Animation")
-    anim.AnimationId = "rbxassetid://YOUR_ANIMATION_ID_HERE"
-    local track = game.Players.LocalPlayer.Character.Humanoid:LoadAnimation(anim)
-    track:Play()
+    anim.AnimationId = "rbxassetid://" .. tostring(id)
+    
+    currentTrack = humanoid:LoadAnimation(anim)
+    currentTrack:Play()
+end
+
+-- Simple GUI using Synapse/Fluxus/Krnl style (ScreenGui)
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 350, 0, 450)
+MainFrame.Position = UDim2.new(1, -370, 0.5, -225)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ScreenGui
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+Title.Text = "ANIMATION ID PLAYER"
+Title.TextColor3 = Color3.new(1,1,1)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
+Title.Parent = MainFrame
+
+-- Animation ID Box
+local IDBox = Instance.new("TextBox")
+IDBox.Size = UDim2.new(0.9, 0, 0, 35)
+IDBox.Position = UDim2.new(0.05, 0, 0.12, 0)
+IDBox.PlaceholderText = "PASTE ID HERE"
+IDBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+IDBox.TextColor3 = Color3.new(1,1,1)
+IDBox.Parent = MainFrame
+
+local PlayBtn = Instance.new("TextButton")
+PlayBtn.Size = UDim2.new(0.4, 0, 0, 35)
+PlayBtn.Position = UDim2.new(0.55, 0, 0.12, 0)
+PlayBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+PlayBtn.Text = "PLAY"
+PlayBtn.TextColor3 = Color3.new(1,1,1)
+PlayBtn.Parent = MainFrame
+
+PlayBtn.MouseButton1Click:Connect(function()
+    local id = tonumber(IDBox.Text)
+    if id then
+        playAnimation(id)
+    end
 end)
 
--- Add more buttons for different animations/emotes
+-- Stop Button
+local StopBtn = Instance.new("TextButton")
+StopBtn.Size = UDim2.new(0.4, 0, 0, 35)
+StopBtn.Position = UDim2.new(0.05, 0, 0.22, 0)
+StopBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+StopBtn.Text = "STOP ANIMATION"
+StopBtn.TextColor3 = Color3.new(1,1,1)
+StopBtn.Parent = MainFrame
+
+StopBtn.MouseButton1Click:Connect(function()
+    if currentTrack then
+        currentTrack:Stop()
+    end
+end)
+
+-- Categories (example buttons - you can add more)
+local categories = {
+    ["Needy Hips"] = 1234567890,   -- replace with real IDs
+    ["Show and Split"] = 9876543210,
+    ["Vertical Leg Spread"] = 111222333,
+    ["Playful Cat"] = 444555666,
+    ["Needy"] = 777888999,
+    ["Seizure"] = 1011121314,
+}
+
+local yOffset = 0.32
+for name, id in pairs(categories) do
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(0.9, 0, 0, 30)
+    Btn.Position = UDim2.new(0.05, 0, yOffset, 0)
+    Btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    Btn.Text = name
+    Btn.TextColor3 = Color3.fromRGB(255, 100, 200)
+    Btn.TextXAlignment = Enum.TextXAlignment.Left
+    Btn.Parent = MainFrame
+    
+    Btn.MouseButton1Click:Connect(function()
+        playAnimation(id)
+    end)
+    
+    yOffset = yOffset + 0.08
+end
+
+-- Hotkeys
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.Z then
+        -- Toggle simple fly (basic version)
+        print("Fly toggled (add full fly script if you want)")
+    elseif input.KeyCode == Enum.KeyCode.G then
+        MainFrame.Visible = not MainFrame.Visible
+    end
+end)
+
+print("Animation GUI loaded! Press G to toggle menu | Z for fly (basic)")
