@@ -1,4 +1,4 @@
--- Unnamed Enhancements Free Recreation (2026 Update)
+-- Unnamed Enhancements - Enhanced Free (2026 Update)
 -- Enhanced with: Real Highlight Chams, Ragebot Auto-Fire, Skin Changer, Anti-Katana
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/Library.lua"))()
@@ -16,6 +16,7 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local Mouse = LocalPlayer:GetMouse()
 
 -- ==================== VARIABLES ====================
 local silentAim = false
@@ -42,27 +43,26 @@ local antiKatana = false
 local skinChanger = false
 local unlockAll = false
 
-local highlights = {}  -- Store Highlight instances for chams
-local bodyVelocity = nil
+local highlights = {}
+local espDrawings = {}
 
--- ==================== COMBAT ====================
-local Combat = Tabs.Combat
+-- ==================== UI ====================
+-- Combat Tab
+local CombatTab = Tabs.Combat
+local AimGroup = CombatTab:AddLeftGroupbox("Aim Assist")
+AimGroup:AddToggle("SilentAim", {Text = "Silent Aim", Default = false, Callback = function(v) silentAim = v end})
+AimGroup:AddToggle("Ragebot", {Text = "Ragebot (Auto Fire Nearest)", Default = false, Callback = function(v) ragebot = v end})
+AimGroup:AddSlider("FOV", {Text = "Aim FOV", Default = 150, Min = 10, Max = 800, Callback = function(v) fov = v end})
+AimGroup:AddDropdown("AimPart", {Text = "Aim Part", Values = {"Head", "UpperTorso", "HumanoidRootPart"}, Default = "Head", Callback = function(v) aimPart = v end})
+AimGroup:AddSlider("Prediction", {Text = "Prediction", Default = 0.12, Min = 0, Max = 0.5, Rounding = 2, Callback = function(v) prediction = v end})
+AimGroup:AddToggle("Triggerbot", {Text = "Triggerbot", Default = false, Callback = function(v) triggerbot = v end})
+AimGroup:AddToggle("Wallbang", {Text = "Wallbang / Magic Bullet", Default = false, Callback = function(v) wallbang = v end})
 
-Combat:AddToggle("SilentAim", {Text = "Silent Aim", Default = false, Callback = function(v) silentAim = v end})
-Combat:AddToggle("Ragebot", {Text = "Ragebot (Auto Fire Nearest)", Default = false, Callback = function(v) ragebot = v end})
-
-Combat:AddSlider("FOV", {Text = "Aim FOV", Default = 150, Min = 10, Max = 800, Callback = function(v) fov = v end})
-Combat:AddDropdown("AimPart", {Text = "Aim Part", Values = {"Head", "UpperTorso", "HumanoidRootPart"}, Default = "Head", Callback = function(v) aimPart = v end})
-Combat:AddSlider("Prediction", {Text = "Prediction", Default = 0.12, Min = 0, Max = 0.5, Rounding = 2, Callback = function(v) prediction = v end})
-
-Combat:AddToggle("Triggerbot", {Text = "Triggerbot", Default = false, Callback = function(v) triggerbot = v end})
-Combat:AddToggle("Wallbang", {Text = "Wallbang / Magic Bullet", Default = false, Callback = function(v) wallbang = v end})
-
--- ==================== VISUALS ====================
-local Visuals = Tabs.Visuals
-
-Visuals:AddToggle("ESP", {Text = "Box + Name ESP", Default = false, Callback = function(v) espEnabled = v end})
-Visuals:AddToggle("Chams", {Text = "Real Chams (Highlight)", Default = false, Callback = function(v)
+-- Visuals Tab
+local VisualsTab = Tabs.Visuals
+local EspGroup = VisualsTab:AddLeftGroupbox("ESP")
+EspGroup:AddToggle("ESP", {Text = "Box + Name ESP", Default = false, Callback = function(v) espEnabled = v end})
+EspGroup:AddToggle("Chams", {Text = "Real Highlight Chams", Default = false, Callback = function(v)
     chamsEnabled = v
     if not v then
         for _, hl in pairs(highlights) do hl:Destroy() end
@@ -70,26 +70,24 @@ Visuals:AddToggle("Chams", {Text = "Real Chams (Highlight)", Default = false, Ca
     end
 end})
 
--- ==================== MOVEMENT ====================
-local Movement = Tabs.Movement
+-- Movement Tab
+local MovementTab = Tabs.Movement
+local MoveGroup = MovementTab:AddLeftGroupbox("Movement")
+MoveGroup:AddToggle("Fly", {Text = "Fly", Default = false, Callback = function(v) flyEnabled = v end})
+MoveGroup:AddSlider("FlySpeed", {Text = "Fly Speed", Default = 60, Min = 10, Max = 300, Callback = function(v) flySpeed = v end})
+MoveGroup:AddToggle("SpeedHack", {Text = "Speed Hack", Default = false, Callback = function(v) speedHack = v end})
+MoveGroup:AddSlider("WalkSpeed", {Text = "WalkSpeed", Default = 50, Min = 16, Max = 250, Callback = function(v) walkSpeed = v end})
+MoveGroup:AddToggle("InfiniteJump", {Text = "Infinite Jump", Default = false, Callback = function(v) infJump = v end})
+MoveGroup:AddToggle("NoClip", {Text = "NoClip", Default = false, Callback = function(v) noclip = v end})
 
-Movement:AddToggle("Fly", {Text = "Fly", Default = false, Callback = function(v) flyEnabled = v end})
-Movement:AddSlider("FlySpeed", {Text = "Fly Speed", Default = 60, Min = 10, Max = 300, Callback = function(v) flySpeed = v end})
+-- Misc Tab
+local MiscTab = Tabs.Misc
+local MiscGroup = MiscTab:AddLeftGroupbox("Misc")
+MiscGroup:AddToggle("AntiKatana", {Text = "Anti-Katana", Default = false, Callback = function(v) antiKatana = v end})
+MiscGroup:AddToggle("SkinChanger", {Text = "Rainbow Skin Changer", Default = false, Callback = function(v) skinChanger = v end})
+MiscGroup:AddToggle("UnlockAll", {Text = "Unlock All (Client)", Default = false, Callback = function(v) unlockAll = v end})
 
-Movement:AddToggle("SpeedHack", {Text = "Speed Hack", Default = false, Callback = function(v) speedHack = v end})
-Movement:AddSlider("WalkSpeed", {Text = "WalkSpeed", Default = 50, Min = 16, Max = 250, Callback = function(v) walkSpeed = v end})
-
-Movement:AddToggle("InfiniteJump", {Text = "Infinite Jump", Default = false, Callback = function(v) infJump = v end})
-Movement:AddToggle("NoClip", {Text = "NoClip", Default = false, Callback = function(v) noclip = v end})
-
--- ==================== MISC ====================
-local Misc = Tabs.Misc
-
-Misc:AddToggle("AntiKatana", {Text = "Anti-Katana", Default = false, Callback = function(v) antiKatana = v end})
-Misc:AddToggle("SkinChanger", {Text = "Rainbow Skin Changer (Client)", Default = false, Callback = function(v) skinChanger = v end})
-Misc:AddToggle("UnlockAll", {Text = "Unlock All (Client-Side Attempt)", Default = false, Callback = function(v) unlockAll = v end})
-
--- ==================== REAL CHAMS (Highlight) ====================
+-- ==================== REAL CHAMS ====================
 local function createChams(character)
     if highlights[character] then return end
     local highlight = Instance.new("Highlight")
@@ -99,7 +97,7 @@ local function createChams(character)
     highlight.FillTransparency = 0.5
     highlight.OutlineTransparency = 0
     highlight.Adornee = character
-    highlight.Parent = character  -- or LocalPlayer:WaitForChild("PlayerGui")
+    highlight.Parent = character
     highlights[character] = highlight
 end
 
@@ -112,18 +110,72 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ==================== RAGEBOT WITH AUTO-FIRE ====================
-local function getNearestEnemy()
-    local closest = nil
-    local shortest = math.huge
-    local myPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart.Position
+-- ==================== FULL ESP (Box + Name) ====================
+local function createESP(plr)
+    if espDrawings[plr] then return end
+    local box = Drawing.new("Square")
+    box.Thickness = 2
+    box.Color = Color3.new(1,0,0)
+    box.Transparency = 1
+    box.Filled = false
 
-    if not myPos then return nil end
+    local name = Drawing.new("Text")
+    name.Size = 14
+    name.Center = true
+    name.Outline = true
+    name.Color = Color3.new(1,1,1)
+
+    espDrawings[plr] = {box = box, name = name}
+end
+
+RunService.RenderStepped:Connect(function()
+    if not espEnabled then 
+        for _, drawings in pairs(espDrawings) do
+            drawings.box.Visible = false
+            drawings.name.Visible = false
+        end
+        return 
+    end
+
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            local root = plr.Character.HumanoidRootPart
+            local head = plr.Character:FindFirstChild("Head")
+            if not head then return end
+
+            local rootPos, onScreen = Camera:WorldToViewportPoint(root.Position)
+            if onScreen then
+                createESP(plr)
+                local drawings = espDrawings[plr]
+
+                local top = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 2, 0))
+                local bottom = Camera:WorldToViewportPoint(root.Position - Vector3.new(0, 3, 0))
+
+                local height = bottom.Y - top.Y
+                local width = height * 0.6
+
+                drawings.box.Size = Vector2.new(width, height)
+                drawings.box.Position = Vector2.new(rootPos.X - width/2, rootPos.Y - height/2)
+                drawings.box.Visible = true
+
+                drawings.name.Text = plr.Name
+                drawings.name.Position = Vector2.new(rootPos.X, top.Y - 15)
+                drawings.name.Visible = true
+            end
+        end
+    end
+end)
+
+-- ==================== RAGEBOT + AUTO FIRE ====================
+local function getNearestEnemy()
+    local closest, shortest = nil, math.huge
+    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return end
 
     for _, plr in pairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild(aimPart) then
-            local dist = (plr.Character[aimPart].Position - myPos).Magnitude
-            if dist < shortest and dist < 300 then  -- max range limit
+            local dist = (plr.Character[aimPart].Position - myRoot.Position).Magnitude
+            if dist < shortest and dist < 300 then
                 shortest = dist
                 closest = plr.Character[aimPart]
             end
@@ -135,22 +187,17 @@ end
 RunService.RenderStepped:Connect(function()
     if not ragebot then return end
     local target = getNearestEnemy()
-    if target and LocalPlayer.Character then
-        local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-        if tool then
-            -- Face target (helps with some guns)
-            local hrp = LocalPlayer.Character.HumanoidRootPart
-            hrp.CFrame = CFrame.lookAt(hrp.Position, target.Position)
+    if not target or not LocalPlayer.Character then return end
 
-            -- Auto fire simulation
-            if tool:FindFirstChild("GunScript") or tool:FindFirstChild("Shoot") then  -- adjust for Rivals gun structure
-                mouse1click()  -- left click fire
-            end
-        end
+    local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+    if tool then
+        local hrp = LocalPlayer.Character.HumanoidRootPart
+        hrp.CFrame = CFrame.lookAt(hrp.Position, target.Position)
+        mouse1click()
     end
 end)
 
--- ==================== SILENT AIM + WALLBANG HOOK ====================
+-- ==================== SILENT AIM + WALLBANG + ANTI-KATANA ====================
 local oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
     local args = {...}
     local method = getnamecallmethod()
@@ -161,61 +208,101 @@ local oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
             local target = getNearestEnemy()
             if target then
                 local pos = target.Position + (target.Velocity * prediction)
-                if wallbang then
-                    -- Force through walls (game dependent)
-                    args[1] = pos + Vector3.new(0, 0, 0)  -- you can tweak
-                else
-                    args[1] = pos
-                end
+                args[1] = wallbang and pos + Vector3.new(0, 0, 0) or pos
             end
         end
     end
 
-    -- Basic Anti-Katana (block stab/damage remotes)
     if antiKatana and (method == "FireServer" or method == "InvokeServer") then
         local name = self.Name:lower()
         if name:find("stab") or name:find("katana") or name:find("knife") or name:find("damage") then
-            return  -- block the remote
+            return
         end
     end
 
     return oldNamecall(self, unpack(args))
 end)
 
--- ==================== SKIN CHANGER & UNLOCK ALL (Client) ====================
+-- ==================== MOVEMENT ====================
+-- Fly
+local bodyVelocity
 RunService.RenderStepped:Connect(function()
-    if skinChanger and LocalPlayer.Character then
-        local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-        if tool then
-            -- Rainbow effect on tool handle (visual only)
-            local handle = tool:FindFirstChild("Handle")
-            if handle and handle:FindFirstChildOfClass("MeshPart") or handle:FindFirstChildOfClass("Part") then
-                handle.Color = Color3.fromHSV(tick() % 5 / 5, 1, 1)
-            end
+    if flyEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = LocalPlayer.Character.HumanoidRootPart
+        if not bodyVelocity then
+            bodyVelocity = Instance.new("BodyVelocity")
+            bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+            bodyVelocity.Parent = hrp
         end
-    end
+        local cam = workspace.CurrentCamera
+        local moveDir = Vector3.new()
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir += cam.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir -= cam.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir -= cam.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir += cam.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir += Vector3.new(0,1,0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir -= Vector3.new(0,1,0) end
 
-    if unlockAll then
-        -- Basic client unlock attempt (visuals + tool properties)
-        for _, tool in pairs(LocalPlayer.Backpack:GetChildren()) do
-            if tool:IsA("Tool") then
-                tool:FindFirstChild("Equipped") -- example property force
-            end
-        end
+        bodyVelocity.Velocity = moveDir.Unit * flySpeed
+    elseif bodyVelocity then
+        bodyVelocity:Destroy()
+        bodyVelocity = nil
     end
 end)
 
--- ==================== MOVEMENT & OTHER LOOPS (same as before) ====================
--- Fly, Speed, Infinite Jump, NoClip, Triggerbot, ESP - keep from previous version
+-- Speed Hack
+RunService.RenderStepped:Connect(function()
+    if speedHack and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = walkSpeed
+    end
+end)
 
+-- Infinite Jump
 UserInputService.JumpRequest:Connect(function()
     if infJump and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
         LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
     end
 end)
 
-print("Unnamed Enhancements Enhanced Loaded!")
-print("• Real Highlight Chams added")
-print("• Ragebot with auto-fire")
-print("• Anti-Katana remote blocking")
-print("• Client skin changer (rainbow visual)")
+-- NoClip
+RunService.Stepped:Connect(function()
+    if noclip and LocalPlayer.Character then
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") and part.CanCollide then
+                part.CanCollide = false
+            end
+        end
+    end
+end)
+
+-- Triggerbot
+RunService.RenderStepped:Connect(function()
+    if not triggerbot then return end
+    local target = Mouse.Target
+    if target and target.Parent then
+        local plr = Players:GetPlayerFromCharacter(target.Parent)
+        if plr and plr ~= LocalPlayer then
+            mouse1click()
+        end
+    end
+end)
+
+-- ==================== SKIN CHANGER & UNLOCK ====================
+RunService.RenderStepped:Connect(function()
+    if skinChanger and LocalPlayer.Character then
+        local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+        if tool then
+            local handle = tool:FindFirstChild("Handle")
+            if handle then
+                handle.Color = Color3.fromHSV(tick() % 5 / 5, 1, 1)
+            end
+        end
+    end
+end)
+
+print("✅ Unnamed Enhancements Enhanced Free (2026) Loaded!")
+print("• Real Highlight Chams")
+print("• Ragebot + Auto Fire")
+print("• Full Box + Name ESP")
+print("• Anti-Katana")
+print("• Rainbow Skin Changer")
