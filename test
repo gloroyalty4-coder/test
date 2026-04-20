@@ -1,14 +1,22 @@
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+-- Stability Check: Ensure Rayfield loads correctly
+local success, Rayfield = pcall(function()
+    return loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+end)
+
+if not success or not Rayfield then 
+    warn("Riel Hub: Failed to load Rayfield Library.") 
+    return 
+end
 
 local Window = Rayfield:CreateWindow({
    Name = "Riel Hub | Rivals Edition",
    LoadingTitle = "Loading Skin Modules...",
-   LoadingSubtitle = "Developed by 6sixig",
-   ConfigurationSaving = { Enabled = true, FileName = "RielRivals" },
+   LoadingSubtitle = "by 6sixig",
+   ConfigurationSaving = { Enabled = false }, -- Set to false to prevent 'no theme on file' errors
    Theme = "BloodTheme" 
 })
 
--- Skin Database: Add the Texture IDs for the skins here
+-- Skin Database
 local skinIDs = {
     ["Default"] = "",
     ["Gold"]    = "rbxassetid://10878141290",
@@ -19,14 +27,17 @@ local skinIDs = {
     ["Ruby"]    = "rbxassetid://10878148550"
 }
 
--- Table to store your current choices
 local userSelections = {}
+local player = game:GetService("Players").LocalPlayer
 
--- Function to apply the texture to the weapon parts
+-- Improved Skin Applier with Nil Checks
 local function applySkin(tool)
+    if not tool or not tool:IsA("Tool") then return end
+    
     local skinID = userSelections[tool.Name]
     if skinID and skinID ~= "" then
         for _, part in pairs(tool:GetDescendants()) do
+            -- Check for both MeshParts and standard Parts with Textures
             if part:IsA("MeshPart") then
                 part.TextureID = skinID
             elseif part:IsA("Texture") or part:IsA("Decal") then
@@ -36,29 +47,24 @@ local function applySkin(tool)
     end
 end
 
--- Monitor character for weapon equipping
-local player = game.Players.LocalPlayer
+-- Listener for Equipping Weapons
 player.CharacterAdded:Connect(function(char)
     char.ChildAdded:Connect(function(child)
-        if child:IsA("Tool") then
-            task.wait(0.1) -- Small delay to ensure tool is fully loaded
-            applySkin(child)
-        end
+        task.wait(0.2) -- Wait for tool models to load properly
+        applySkin(child)
     end)
 end)
 
--- Main Tab
 local SkinTab = Window:CreateTab("Skin Changer", 4483362458)
-
 SkinTab:CreateSection("Weapon Selection")
 
--- List of weapons in Rivals
+-- Every Weapon in Rivals
 local weapons = {
     "Assault Rifle", "Sniper", "Shotgun", "Knife", 
-    "Deagle", "RPG", "MP5", "Flamethrower", "Railgun"
+    "Deagle", "RPG", "MP5", "Flamethrower", "Railgun",
+    "Minigun", "Bow", "Katana", "Grenade Launcher"
 }
 
--- Create a dropdown for every weapon automatically
 for _, weaponName in pairs(weapons) do
     SkinTab:CreateDropdown({
         Name = weaponName,
@@ -66,37 +72,20 @@ for _, weaponName in pairs(weapons) do
         CurrentOption = {"Default"},
         MultipleOptions = false,
         Callback = function(Option)
-            local selection = Option[1]
-            userSelections[weaponName] = skinIDs[selection]
+            userSelections[weaponName] = skinIDs[Option[1]]
             
-            -- If currently holding the weapon, update it instantly
-            local character = player.Character
-            if character and character:FindFirstChild(weaponName) then
-                applySkin(character[weaponName])
+            -- Live update if holding weapon
+            if player.Character then
+                local tool = player.Character:FindFirstChild(weaponName)
+                if tool then applySkin(tool) end
             end
         end,
     })
 end
 
-SkinTab:CreateSection("Extras")
-
-SkinTab:CreateButton({
-   Name = "Force Update Current Weapon",
-   Callback = function()
-       local char = player.Character
-       if char then
-           for _, tool in pairs(char:GetChildren()) do
-               if tool:IsA("Tool") then
-                   applySkin(tool)
-               end
-           end
-       end
-   end,
-})
-
 Rayfield:Notify({
-   Title = "Riel Hub Loaded",
-   Content = "Select your skins and equip the weapon to apply.",
-   Duration = 6.5,
+   Title = "Riel Hub Active",
+   Content = "Theme loaded. Ready for skin swaps.",
+   Duration = 5,
    Image = 4483362458,
 })
