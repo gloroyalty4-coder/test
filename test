@@ -1,156 +1,102 @@
--- Unnamed Enhancements - Final ULTIMATE FIX (2026)
--- Fixes: "Attempt to index number with 'Visible'" & "Missing rounding value"
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
-print("🔧 Initializing Unnamed Enhancements...")
-
-local success, Library = pcall(function()
-    return loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/Library.lua"))()
-end)
-
-if not success or not Library then
-    warn("❌ Critical Error: LinoriaLib failed to load.")
-    return
-end
-
--- ==================== UI WINDOW SETUP ====================
-local Window = Library:CreateWindow({
-    Title = "Unnamed Enhancements | Rivals Edition",
-    Center = true,
-    AutoShow = true,
-    TabPadding = 8
+local Window = Rayfield:CreateWindow({
+   Name = "Riel Hub | Rivals Edition",
+   LoadingTitle = "Loading Skin Modules...",
+   LoadingSubtitle = "Developed by 6sixig",
+   ConfigurationSaving = { Enabled = true, FileName = "RielRivals" },
+   Theme = "BloodTheme" 
 })
 
-local Tabs = {
-    Combat = Window:AddTab("Combat"),
-    Visuals = Window:AddTab("Visuals"),
-    Movement = Window:AddTab("Movement"),
-    Misc = Window:AddTab("Misc")
+-- Skin Database: Add the Texture IDs for the skins here
+local skinIDs = {
+    ["Default"] = "",
+    ["Gold"]    = "rbxassetid://10878141290",
+    ["Diamond"] = "rbxassetid://10878142721",
+    ["Pixel"]   = "rbxassetid://10878144052",
+    ["Galaxy"]  = "rbxassetid://10878145563",
+    ["Void"]    = "rbxassetid://10878147102",
+    ["Ruby"]    = "rbxassetid://10878148550"
 }
 
--- ==================== SERVICES & VARS ====================
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+-- Table to store your current choices
+local userSelections = {}
 
-local Settings = {
-    SilentAim = false, Ragebot = false, Wallbang = false, Prediction = 0.12, AimPart = "Head", FOV = 150,
-    ESP = false, Tracers = false, Chams = false, FOVCircle = false,
-    Fly = false, FlySpeed = 60, SpeedHack = false, WalkSpeed = 50, InfJump = false, Noclip = false
-}
-
--- ==================== COMBAT TAB ====================
-local AimGroup = Tabs.Combat:AddLeftGroupbox("Aim Assist")
-
-AimGroup:AddToggle("SA", {Text = "Silent Aim", Default = false}):OnChanged(function() Settings.SilentAim = Toggles.SA.Value end)
-AimGroup:AddToggle("RB", {Text = "Ragebot (Auto Fire)", Default = false}):OnChanged(function() Settings.Ragebot = Toggles.RB.Value end)
-AimGroup:AddSlider("AimFOV", {Text = "Aim FOV", Default = 150, Min = 10, Max = 800, Rounding = 0}):OnChanged(function() Settings.FOV = Options.AimFOV.Value end)
-AimGroup:AddDropdown("APart", {Text = "Aim Part", Values = {"Head", "UpperTorso", "HumanoidRootPart"}, Default = "Head"}):OnChanged(function() Settings.AimPart = Options.APart.Value end)
-AimGroup:AddSlider("Pred", {Text = "Prediction", Default = 0.12, Min = 0, Max = 0.5, Rounding = 2}):OnChanged(function() Settings.Prediction = Options.Pred.Value end)
-AimGroup:AddToggle("WB", {Text = "Wallbang / Magic Bullet", Default = false}):OnChanged(function() Settings.Wallbang = Toggles.WB.Value end)
-
--- ==================== VISUALS TAB ====================
-local VisualsGroup = Tabs.Visuals:AddLeftGroupbox("ESP & Visuals")
-
-VisualsGroup:AddToggle("EspT", {Text = "Full ESP Box", Default = false}):OnChanged(function() Settings.ESP = Toggles.EspT.Value end)
-VisualsGroup:AddToggle("TraceT", {Text = "Tracers", Default = false}):OnChanged(function() Settings.Tracers = Toggles.TraceT.Value end)
-VisualsGroup:AddToggle("FovC", {Text = "FOV Circle", Default = false}):OnChanged(function() Settings.FOVCircle = Toggles.FovC.Value end)
-VisualsGroup:AddToggle("ChamT", {Text = "Chams", Default = false}):OnChanged(function() Settings.Chams = Toggles.ChamT.Value end)
-
--- ==================== MOVEMENT TAB ====================
-local MoveGroup = Tabs.Movement:AddLeftGroupbox("Movement")
-
-MoveGroup:AddToggle("FlyT", {Text = "Fly", Default = false}):OnChanged(function() Settings.Fly = Toggles.FlyT.Value end)
-MoveGroup:AddSlider("FlyS", {Text = "Fly Speed", Default = 60, Min = 10, Max = 300, Rounding = 0}):OnChanged(function() Settings.FlySpeed = Options.FlyS.Value end)
-MoveGroup:AddToggle("SpeedT", {Text = "Speed Hack", Default = false}):OnChanged(function() Settings.SpeedHack = Toggles.SpeedT.Value end)
-MoveGroup:AddSlider("WalkS", {Text = "WalkSpeed", Default = 50, Min = 16, Max = 250, Rounding = 0}):OnChanged(function() Settings.WalkSpeed = Options.WalkS.Value end)
-MoveGroup:AddToggle("JumpT", {Text = "Infinite Jump", Default = false}):OnChanged(function() Settings.InfJump = Toggles.JumpT.Value end)
-MoveGroup:AddToggle("ClipT", {Text = "NoClip", Default = false}):OnChanged(function() Settings.Noclip = Toggles.ClipT.Value end)
-
--- ==================== THE ENGINE (CORE LOGIC) ====================
-
--- 1. FOV Circle Setup
-local fovCircle = Drawing.new("Circle")
-fovCircle.Visible = false
-fovCircle.Thickness = 1.5
-fovCircle.Color = Color3.fromRGB(255, 0, 0)
-fovCircle.Transparency = 1
-
--- 2. Target Function
-local function getClosestPlayer()
-    local target, shortestDist = nil, Settings.FOV
-    for _, plr in pairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild(Settings.AimPart) then
-            local pos, onScreen = Camera:WorldToViewportPoint(plr.Character[Settings.AimPart].Position)
-            if onScreen then
-                local dist = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
-                if dist < shortestDist then
-                    target = plr.Character[Settings.AimPart]
-                    shortestDist = dist
-                end
+-- Function to apply the texture to the weapon parts
+local function applySkin(tool)
+    local skinID = userSelections[tool.Name]
+    if skinID and skinID ~= "" then
+        for _, part in pairs(tool:GetDescendants()) do
+            if part:IsA("MeshPart") then
+                part.TextureID = skinID
+            elseif part:IsA("Texture") or part:IsA("Decal") then
+                part.Texture = skinID
             end
         end
     end
-    return target
 end
 
--- 3. Main Loop
-local bodyVelocity = nil
-
-RunService.RenderStepped:Connect(function()
-    -- FOV Circle logic
-    fovCircle.Visible = Settings.FOVCircle
-    if Settings.FOVCircle then
-        fovCircle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
-        fovCircle.Radius = Settings.FOV
-    end
-
-    -- Speedhack
-    if Settings.SpeedHack and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid.WalkSpeed = Settings.WalkSpeed
-    end
-
-    -- Fly logic
-    if Settings.Fly and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        if not bodyVelocity or bodyVelocity.Parent ~= LocalPlayer.Character.HumanoidRootPart then
-            bodyVelocity = Instance.new("BodyVelocity")
-            bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-            bodyVelocity.Parent = LocalPlayer.Character.HumanoidRootPart
+-- Monitor character for weapon equipping
+local player = game.Players.LocalPlayer
+player.CharacterAdded:Connect(function(char)
+    char.ChildAdded:Connect(function(child)
+        if child:IsA("Tool") then
+            task.wait(0.1) -- Small delay to ensure tool is fully loaded
+            applySkin(child)
         end
-        local moveDir = Vector3.new()
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir += Camera.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir -= Camera.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir -= Camera.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir += Camera.CFrame.RightVector end
-        bodyVelocity.Velocity = (moveDir.Unit * Settings.FlySpeed)
-    elseif bodyVelocity then
-        bodyVelocity:Destroy()
-        bodyVelocity = nil
-    end
-
-    -- Noclip
-    if Settings.Noclip and LocalPlayer.Character then
-        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") then part.CanCollide = false end
-        end
-    end
+    end)
 end)
 
--- 4. Jump Request (Infinite Jump)
-UserInputService.JumpRequest:Connect(function()
-    if Settings.InfJump and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-    end
-end)
+-- Main Tab
+local SkinTab = Window:CreateTab("Skin Changer", 4483362458)
 
--- 5. FIXED TOGGLE (SetOpen fixes the 'Visible' error)
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.Insert or input.KeyCode == Enum.KeyCode.RightShift then
-        Library:SetOpen(not Library.Opened)
-    end
-end)
+SkinTab:CreateSection("Weapon Selection")
 
-Library:Notify("✅ Unnamed Enhancements Fully Fixed! Press INSERT to Toggle.")
-print("✅ Script Loaded Successfully.")
+-- List of weapons in Rivals
+local weapons = {
+    "Assault Rifle", "Sniper", "Shotgun", "Knife", 
+    "Deagle", "RPG", "MP5", "Flamethrower", "Railgun"
+}
+
+-- Create a dropdown for every weapon automatically
+for _, weaponName in pairs(weapons) do
+    SkinTab:CreateDropdown({
+        Name = weaponName,
+        Options = {"Default", "Gold", "Diamond", "Pixel", "Galaxy", "Void", "Ruby"},
+        CurrentOption = {"Default"},
+        MultipleOptions = false,
+        Callback = function(Option)
+            local selection = Option[1]
+            userSelections[weaponName] = skinIDs[selection]
+            
+            -- If currently holding the weapon, update it instantly
+            local character = player.Character
+            if character and character:FindFirstChild(weaponName) then
+                applySkin(character[weaponName])
+            end
+        end,
+    })
+end
+
+SkinTab:CreateSection("Extras")
+
+SkinTab:CreateButton({
+   Name = "Force Update Current Weapon",
+   Callback = function()
+       local char = player.Character
+       if char then
+           for _, tool in pairs(char:GetChildren()) do
+               if tool:IsA("Tool") then
+                   applySkin(tool)
+               end
+           end
+       end
+   end,
+})
+
+Rayfield:Notify({
+   Title = "Riel Hub Loaded",
+   Content = "Select your skins and equip the weapon to apply.",
+   Duration = 6.5,
+   Image = 4483362458,
+})
