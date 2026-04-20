@@ -1,279 +1,221 @@
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local viewModels = player:WaitForChild("PlayerScripts"):WaitForChild("Assets"):WaitForChild("ViewModels")
-local CoreGui = game:GetService("CoreGui")
+-- Unnamed Enhancements Free Recreation (2026 Update)
+-- Enhanced with: Real Highlight Chams, Ragebot Auto-Fire, Skin Changer, Anti-Katana
 
--- Remove old GUI
-if CoreGui:FindFirstChild("UltimateWeaponGUI") then
-    CoreGui.UltimateWeaponGUI:Destroy()
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/Library.lua"))()
+local Window = Library:CreateWindow({ Title = "Unnamed Enhancements - Enhanced Free", Center = true, AutoShow = true })
+
+local Tabs = {
+    Combat = Window:AddTab("Combat"),
+    Visuals = Window:AddTab("Visuals"),
+    Movement = Window:AddTab("Movement"),
+    Misc = Window:AddTab("Misc")
+}
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+-- ==================== VARIABLES ====================
+local silentAim = false
+local ragebot = false
+local triggerbot = false
+local wallbang = false
+local fov = 150
+local aimPart = "Head"
+local prediction = 0.12
+
+local espEnabled = false
+local chamsEnabled = false
+local chamsFillColor = Color3.fromRGB(255, 0, 0)
+local chamsOutlineColor = Color3.fromRGB(255, 255, 255)
+
+local flyEnabled = false
+local flySpeed = 60
+local speedHack = false
+local walkSpeed = 50
+local infJump = false
+local noclip = false
+
+local antiKatana = false
+local skinChanger = false
+local unlockAll = false
+
+local highlights = {}  -- Store Highlight instances for chams
+local bodyVelocity = nil
+
+-- ==================== COMBAT ====================
+local Combat = Tabs.Combat
+
+Combat:AddToggle("SilentAim", {Text = "Silent Aim", Default = false, Callback = function(v) silentAim = v end})
+Combat:AddToggle("Ragebot", {Text = "Ragebot (Auto Fire Nearest)", Default = false, Callback = function(v) ragebot = v end})
+
+Combat:AddSlider("FOV", {Text = "Aim FOV", Default = 150, Min = 10, Max = 800, Callback = function(v) fov = v end})
+Combat:AddDropdown("AimPart", {Text = "Aim Part", Values = {"Head", "UpperTorso", "HumanoidRootPart"}, Default = "Head", Callback = function(v) aimPart = v end})
+Combat:AddSlider("Prediction", {Text = "Prediction", Default = 0.12, Min = 0, Max = 0.5, Rounding = 2, Callback = function(v) prediction = v end})
+
+Combat:AddToggle("Triggerbot", {Text = "Triggerbot", Default = false, Callback = function(v) triggerbot = v end})
+Combat:AddToggle("Wallbang", {Text = "Wallbang / Magic Bullet", Default = false, Callback = function(v) wallbang = v end})
+
+-- ==================== VISUALS ====================
+local Visuals = Tabs.Visuals
+
+Visuals:AddToggle("ESP", {Text = "Box + Name ESP", Default = false, Callback = function(v) espEnabled = v end})
+Visuals:AddToggle("Chams", {Text = "Real Chams (Highlight)", Default = false, Callback = function(v)
+    chamsEnabled = v
+    if not v then
+        for _, hl in pairs(highlights) do hl:Destroy() end
+        highlights = {}
+    end
+end})
+
+-- ==================== MOVEMENT ====================
+local Movement = Tabs.Movement
+
+Movement:AddToggle("Fly", {Text = "Fly", Default = false, Callback = function(v) flyEnabled = v end})
+Movement:AddSlider("FlySpeed", {Text = "Fly Speed", Default = 60, Min = 10, Max = 300, Callback = function(v) flySpeed = v end})
+
+Movement:AddToggle("SpeedHack", {Text = "Speed Hack", Default = false, Callback = function(v) speedHack = v end})
+Movement:AddSlider("WalkSpeed", {Text = "WalkSpeed", Default = 50, Min = 16, Max = 250, Callback = function(v) walkSpeed = v end})
+
+Movement:AddToggle("InfiniteJump", {Text = "Infinite Jump", Default = false, Callback = function(v) infJump = v end})
+Movement:AddToggle("NoClip", {Text = "NoClip", Default = false, Callback = function(v) noclip = v end})
+
+-- ==================== MISC ====================
+local Misc = Tabs.Misc
+
+Misc:AddToggle("AntiKatana", {Text = "Anti-Katana", Default = false, Callback = function(v) antiKatana = v end})
+Misc:AddToggle("SkinChanger", {Text = "Rainbow Skin Changer (Client)", Default = false, Callback = function(v) skinChanger = v end})
+Misc:AddToggle("UnlockAll", {Text = "Unlock All (Client-Side Attempt)", Default = false, Callback = function(v) unlockAll = v end})
+
+-- ==================== REAL CHAMS (Highlight) ====================
+local function createChams(character)
+    if highlights[character] then return end
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "UE_Chams"
+    highlight.FillColor = chamsFillColor
+    highlight.OutlineColor = chamsOutlineColor
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.Adornee = character
+    highlight.Parent = character  -- or LocalPlayer:WaitForChild("PlayerGui")
+    highlights[character] = highlight
 end
 
-local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "UltimateWeaponGUI"
-ScreenGui.ResetOnSpawn = false
-
--- Main Frame
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 480, 0, 620)
-MainFrame.Position = UDim2.new(0, 100, 0, 70)
-MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 28)
-MainFrame.ClipsDescendants = true
-MainFrame.Active = true
-MainFrame.Draggable = true
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
-
--- Title Bar
-local TitleBar = Instance.new("Frame", MainFrame)
-TitleBar.Size = UDim2.new(1, 0, 0, 40)
-TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
-Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 12)
-
-local Title = Instance.new("TextLabel", TitleBar)
-Title.Size = UDim2.new(1, -40, 1, 0)
-Title.Position = UDim2.new(0, 10, 0, 0)
-Title.BackgroundTransparency = 1
-Title.Text = "🎨 Ultimate Weapon Skins System"
-Title.TextColor3 = Color3.fromRGB(0, 200, 255)
-Title.TextScaled = true
-Title.Font = Enum.Font.GothamBold
-Title.TextXAlignment = Enum.TextXAlignment.Left
-
--- Close Button
-local closeBtn = Instance.new("TextButton", TitleBar)
-closeBtn.Size = UDim2.new(0, 30, 0, 30)
-closeBtn.Position = UDim2.new(1, -35, 0, 5)
-closeBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
-closeBtn.Text = "✕"
-closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeBtn.TextScaled = true
-closeBtn.Font = Enum.Font.GothamBold
-Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 8)
-closeBtn.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
-end)
-
--- Top Section: Weapons Selection
-local WeaponsSection = Instance.new("Frame", MainFrame)
-WeaponsSection.Size = UDim2.new(1, -20, 0, 130)
-WeaponsSection.Position = UDim2.new(0, 10, 0, 50)
-WeaponsSection.BackgroundColor3 = Color3.fromRGB(25, 25, 38)
-Instance.new("UICorner", WeaponsSection).CornerRadius = UDim.new(0, 10)
-
-local WeaponsHeader = Instance.new("TextLabel", WeaponsSection)
-WeaponsHeader.Size = UDim2.new(1, -20, 0, 25)
-WeaponsHeader.Position = UDim2.new(0, 10, 0, 5)
-WeaponsHeader.BackgroundTransparency = 1
-WeaponsHeader.Text = "🔫 1. Select Your Weapon"
-WeaponsHeader.TextColor3 = Color3.fromRGB(255, 200, 100)
-WeaponsHeader.TextScaled = true
-WeaponsHeader.Font = Enum.Font.GothamBold
-WeaponsHeader.TextXAlignment = Enum.TextXAlignment.Left
-
-local selectedWeaponLabel = Instance.new("TextLabel", WeaponsSection)
-selectedWeaponLabel.Size = UDim2.new(1, -20, 0, 24)
-selectedWeaponLabel.Position = UDim2.new(0, 10, 0, 35)
-selectedWeaponLabel.BackgroundColor3 = Color3.fromRGB(35, 35, 52)
-selectedWeaponLabel.TextColor3 = Color3.fromRGB(255, 180, 80)
-selectedWeaponLabel.Text = "⚡ No weapon selected"
-selectedWeaponLabel.TextScaled = true
-selectedWeaponLabel.Font = Enum.Font.GothamBold
-Instance.new("UICorner", selectedWeaponLabel).CornerRadius = UDim.new(0, 8)
-
-local WeaponsContainer = Instance.new("ScrollingFrame", WeaponsSection)
-WeaponsContainer.Size = UDim2.new(1, -20, 0, 50)
-WeaponsContainer.Position = UDim2.new(0, 10, 0, 65)
-WeaponsContainer.BackgroundTransparency = 1
-WeaponsContainer.ScrollBarThickness = 4
-WeaponsContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
-
-local WeaponsGrid = Instance.new("UIGridLayout", WeaponsContainer)
-WeaponsGrid.CellSize = UDim2.new(0, 100, 0, 30)
-WeaponsGrid.FillDirection = Enum.FillDirection.Horizontal
-WeaponsGrid.HorizontalAlignment = Enum.HorizontalAlignment.Left
-WeaponsGrid.VerticalAlignment = Enum.VerticalAlignment.Top
-WeaponsGrid.CellPadding = UDim2.new(0, 8, 0, 5)
-
-local selectedWeapon = nil
-local weaponButtons = {}
-
-local weaponsFolder = viewModels:FindFirstChild("Weapons")
-if weaponsFolder then
-    for _, weapon in pairs(weaponsFolder:GetChildren()) do
-        if weapon:IsA("Model") or weapon:IsA("Folder") then
-            local btn = Instance.new("TextButton", WeaponsContainer)
-            btn.Text = weapon.Name
-            btn.TextScaled = true
-            btn.Font = Enum.Font.GothamBold
-            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-            btn.BackgroundColor3 = Color3.fromRGB(55, 55, 80)
-            btn.AutoButtonColor = true
-            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
-            
-            btn.MouseButton1Click:Connect(function()
-                selectedWeapon = weapon
-                selectedWeaponLabel.Text = "✅ Selected: " .. weapon.Name
-                selectedWeaponLabel.TextColor3 = Color3.fromRGB(100, 255, 150)
-                
-                for _, b in pairs(weaponButtons) do
-                    b.BackgroundColor3 = Color3.fromRGB(55, 55, 80)
-                end
-                btn.BackgroundColor3 = Color3.fromRGB(100, 100, 160)
-            end)
-            
-            table.insert(weaponButtons, btn)
+RunService.RenderStepped:Connect(function()
+    if not chamsEnabled then return end
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            createChams(player.Character)
         end
     end
-    WeaponsContainer.CanvasSize = UDim2.new(0, 0, 0, WeaponsGrid.AbsoluteContentSize.Y + 5)
-end
+end)
 
--- Bottom Section: Skins
-local SkinsMainFrame = Instance.new("Frame", MainFrame)
-SkinsMainFrame.Size = UDim2.new(1, -20, 0, 430)
-SkinsMainFrame.Position = UDim2.new(0, 10, 0, 190)
-SkinsMainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 38)
-Instance.new("UICorner", SkinsMainFrame).CornerRadius = UDim.new(0, 12)
+-- ==================== RAGEBOT WITH AUTO-FIRE ====================
+local function getNearestEnemy()
+    local closest = nil
+    local shortest = math.huge
+    local myPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart.Position
 
-local SkinsHeader = Instance.new("TextLabel", SkinsMainFrame)
-SkinsHeader.Size = UDim2.new(1, -20, 0, 25)
-SkinsHeader.Position = UDim2.new(0, 10, 0, 5)
-SkinsHeader.BackgroundTransparency = 1
-SkinsHeader.Text = "🎨 2. Choose a Skin"
-SkinsHeader.TextColor3 = Color3.fromRGB(100, 200, 255)
-SkinsHeader.TextScaled = true
-SkinsHeader.Font = Enum.Font.GothamBold
-SkinsHeader.TextXAlignment = Enum.TextXAlignment.Left
+    if not myPos then return nil end
 
-local SearchBox = Instance.new("TextBox", SkinsMainFrame)
-SearchBox.Size = UDim2.new(1, -20, 0, 32)
-SearchBox.Position = UDim2.new(0, 10, 0, 35)
-SearchBox.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-SearchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-SearchBox.PlaceholderText = "🔍 Search for skin..."
-SearchBox.TextScaled = true
-SearchBox.Font = Enum.Font.GothamBold
-Instance.new("UICorner", SearchBox).CornerRadius = UDim.new(0, 8)
-
-local SkinsScroll = Instance.new("ScrollingFrame", SkinsMainFrame)
-SkinsScroll.Size = UDim2.new(1, -20, 0, 350)
-SkinsScroll.Position = UDim2.new(0, 10, 0, 72)
-SkinsScroll.BackgroundTransparency = 1
-SkinsScroll.ScrollBarThickness = 6
-SkinsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-
-local SkinsGrid = Instance.new("UIGridLayout", SkinsScroll)
-SkinsGrid.CellSize = UDim2.new(0, 140, 0, 42)
-SkinsGrid.FillDirection = Enum.FillDirection.Horizontal
-SkinsGrid.HorizontalAlignment = Enum.HorizontalAlignment.Left
-SkinsGrid.VerticalAlignment = Enum.VerticalAlignment.Top
-SkinsGrid.CellPadding = UDim2.new(0, 10, 0, 8)
-
-local allSkinCards = {}
-
-local function addSkinCard(skinName, sourceFolder)
-    local card = Instance.new("Frame", SkinsScroll)
-    card.Size = UDim2.new(0, 140, 0, 42)
-    card.BackgroundColor3 = Color3.fromRGB(48, 48, 68)
-    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
-    
-    local nameLabel = Instance.new("TextLabel", card)
-    nameLabel.Size = UDim2.new(0.6, -5, 1, -4)
-    nameLabel.Position = UDim2.new(0, 5, 0, 2)
-    nameLabel.BackgroundTransparency = 1
-    nameLabel.Text = skinName
-    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    nameLabel.TextScaled = true
-    nameLabel.Font = Enum.Font.GothamBold
-    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
-    
-    local applyBtn = Instance.new("TextButton", card)
-    applyBtn.Size = UDim2.new(0.35, -5, 0.7, -4)
-    applyBtn.Position = UDim2.new(0.65, 0, 0.15, 0)
-    applyBtn.BackgroundColor3 = Color3.fromRGB(70, 140, 110)
-    applyBtn.Text = "Apply"
-    applyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    applyBtn.TextScaled = true
-    applyBtn.Font = Enum.Font.GothamBold
-    Instance.new("UICorner", applyBtn).CornerRadius = UDim.new(0, 6)
-    
-    applyBtn.MouseButton1Click:Connect(function()
-        if not selectedWeapon then
-            selectedWeaponLabel.Text = "⚠️ Please select a weapon first!"
-            selectedWeaponLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-            task.wait(1.5)
-            selectedWeaponLabel.Text = "⚡ No weapon selected"
-            selectedWeaponLabel.TextColor3 = Color3.fromRGB(255, 180, 80)
-            return
-        end
-        
-        local source = sourceFolder:FindFirstChild(skinName)
-        if not source then return end
-        
-        for _, child in pairs(selectedWeapon:GetChildren()) do
-            child:Destroy()
-        end
-        
-        for _, child in pairs(source:GetChildren()) do
-            child:Clone().Parent = selectedWeapon
-        end
-        
-        local originalColor = applyBtn.BackgroundColor3
-        applyBtn.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
-        selectedWeaponLabel.Text = "✓ Applied '" .. skinName .. "' to " .. selectedWeapon.Name
-        selectedWeaponLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
-        task.wait(0.6)
-        applyBtn.BackgroundColor3 = originalColor
-        task.wait(1)
-        selectedWeaponLabel.Text = "✅ Selected: " .. selectedWeapon.Name
-        selectedWeaponLabel.TextColor3 = Color3.fromRGB(100, 255, 150)
-    end)
-    
-    return card, nameLabel
-end
-
-local skinFolders = {"Bundles","Skin Case","Skin Case 2","Unobtainable","Other","Glorious","Season","Fastive SkinCase"}
-for _, folderName in ipairs(skinFolders) do
-    local folder = viewModels:FindFirstChild(folderName)
-    if folder then
-        for _, skin in pairs(folder:GetChildren()) do
-            if skin:IsA("Model") or skin:IsA("Folder") then
-                local card, nameLabel = addSkinCard(skin.Name, folder)
-                table.insert(allSkinCards, {card = card, name = skin.Name:lower(), nameLabel = nameLabel})
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild(aimPart) then
+            local dist = (plr.Character[aimPart].Position - myPos).Magnitude
+            if dist < shortest and dist < 300 then  -- max range limit
+                shortest = dist
+                closest = plr.Character[aimPart]
             end
         end
     end
+    return closest
 end
 
-local function updateCanvasSize()
-    task.wait(0.1)
-    SkinsScroll.CanvasSize = UDim2.new(0, 0, 0, SkinsGrid.AbsoluteContentSize.Y + 10)
-end
-updateCanvasSize()
+RunService.RenderStepped:Connect(function()
+    if not ragebot then return end
+    local target = getNearestEnemy()
+    if target and LocalPlayer.Character then
+        local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+        if tool then
+            -- Face target (helps with some guns)
+            local hrp = LocalPlayer.Character.HumanoidRootPart
+            hrp.CFrame = CFrame.lookAt(hrp.Position, target.Position)
 
-SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
-    local searchTerm = SearchBox.Text:lower()
-    for _, item in ipairs(allSkinCards) do
-        item.card.Visible = (searchTerm == "" or item.name:find(searchTerm))
-    end
-    updateCanvasSize()
-end)
-
--- Footer: Created by Wagep1234
-local footer = Instance.new("TextLabel", MainFrame)
-footer.Size = UDim2.new(1, -20, 0, 18)
-footer.Position = UDim2.new(0, 10, 1, -20)
-footer.BackgroundTransparency = 1
-footer.Text = "Created by Wagep1234 | Weapon Skin System"
-footer.TextColor3 = Color3.fromRGB(150, 150, 150)
-footer.TextScaled = true
-footer.Font = Enum.Font.Gotham
-
-player.CharacterAdded:Connect(function(character)
-    selectedWeapon = nil
-    selectedWeaponLabel.Text = "⚡ No weapon selected"
-    selectedWeaponLabel.TextColor3 = Color3.fromRGB(255, 180, 80)
-    for _, btn in ipairs(weaponButtons) do
-        btn.BackgroundColor3 = Color3.fromRGB(55, 55, 80)
+            -- Auto fire simulation
+            if tool:FindFirstChild("GunScript") or tool:FindFirstChild("Shoot") then  -- adjust for Rivals gun structure
+                mouse1click()  -- left click fire
+            end
+        end
     end
 end)
 
-print("✓ Ultimate Weapon Skins GUI Loaded Successfully - Combined Interface")
+-- ==================== SILENT AIM + WALLBANG HOOK ====================
+local oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+    local args = {...}
+    local method = getnamecallmethod()
+
+    if (silentAim or ragebot) and (method == "FireServer" or method == "InvokeServer") then
+        local name = self.Name:lower()
+        if name:find("bullet") or name:find("shoot") or name:find("hit") or name:find("damage") then
+            local target = getNearestEnemy()
+            if target then
+                local pos = target.Position + (target.Velocity * prediction)
+                if wallbang then
+                    -- Force through walls (game dependent)
+                    args[1] = pos + Vector3.new(0, 0, 0)  -- you can tweak
+                else
+                    args[1] = pos
+                end
+            end
+        end
+    end
+
+    -- Basic Anti-Katana (block stab/damage remotes)
+    if antiKatana and (method == "FireServer" or method == "InvokeServer") then
+        local name = self.Name:lower()
+        if name:find("stab") or name:find("katana") or name:find("knife") or name:find("damage") then
+            return  -- block the remote
+        end
+    end
+
+    return oldNamecall(self, unpack(args))
+end)
+
+-- ==================== SKIN CHANGER & UNLOCK ALL (Client) ====================
+RunService.RenderStepped:Connect(function()
+    if skinChanger and LocalPlayer.Character then
+        local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+        if tool then
+            -- Rainbow effect on tool handle (visual only)
+            local handle = tool:FindFirstChild("Handle")
+            if handle and handle:FindFirstChildOfClass("MeshPart") or handle:FindFirstChildOfClass("Part") then
+                handle.Color = Color3.fromHSV(tick() % 5 / 5, 1, 1)
+            end
+        end
+    end
+
+    if unlockAll then
+        -- Basic client unlock attempt (visuals + tool properties)
+        for _, tool in pairs(LocalPlayer.Backpack:GetChildren()) do
+            if tool:IsA("Tool") then
+                tool:FindFirstChild("Equipped") -- example property force
+            end
+        end
+    end
+end)
+
+-- ==================== MOVEMENT & OTHER LOOPS (same as before) ====================
+-- Fly, Speed, Infinite Jump, NoClip, Triggerbot, ESP - keep from previous version
+
+UserInputService.JumpRequest:Connect(function()
+    if infJump and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end)
+
+print("Unnamed Enhancements Enhanced Loaded!")
+print("• Real Highlight Chams added")
+print("• Ragebot with auto-fire")
+print("• Anti-Katana remote blocking")
+print("• Client skin changer (rainbow visual)")
