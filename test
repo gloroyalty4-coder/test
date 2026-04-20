@@ -1,14 +1,14 @@
--- Unnamed Enhancements - Enhanced Free (2026 FULL FINAL) [Rivals]
--- Fixed: All Tabs Visible + INSERT / RightShift Open/Close + Everything Working
+-- Unnamed Enhancements - Enhanced Free (2026 FINAL FIX) [Rivals]
+-- Fixed: AddSlider Rounding Error + All Tabs + INSERT Toggle
 
-print("🔧 Loading Unnamed Enhancements Full Final Version...")
+print("🔧 Loading Unnamed Enhancements FINAL FIX...")
 
 local success, Library = pcall(function()
     return loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/Library.lua"))()
 end)
 
 if not success then
-    print("❌ ERROR: Could not load LinoriaLib! Check your executor / internet.")
+    print("❌ LinoriaLib load failed!")
     return
 end
 
@@ -66,19 +66,17 @@ local tracers = {}
 local fovCircle = nil
 local bodyVelocity = nil
 
--- ==================== UI ====================
--- Combat Tab
+-- ==================== UI (with Rounding fixed) ====================
 local CombatTab = Tabs.Combat
 local AimGroup = CombatTab:AddLeftGroupbox("Aim Assist")
 AimGroup:AddToggle("SilentAim", {Text = "Silent Aim", Default = false, Callback = function(v) silentAim = v end})
 AimGroup:AddToggle("Ragebot", {Text = "Ragebot (Auto Fire)", Default = false, Callback = function(v) ragebot = v end})
-AimGroup:AddSlider("FOV", {Text = "Aim FOV", Default = 150, Min = 10, Max = 800, Callback = function(v) fov = v end})
+AimGroup:AddSlider("FOV", {Text = "Aim FOV", Default = 150, Min = 10, Max = 800, Rounding = 0, Callback = function(v) fov = v end})
 AimGroup:AddDropdown("AimPart", {Text = "Aim Part", Values = {"Head", "UpperTorso", "HumanoidRootPart"}, Default = "Head", Callback = function(v) aimPart = v end})
 AimGroup:AddSlider("Prediction", {Text = "Prediction", Default = 0.12, Min = 0, Max = 0.5, Rounding = 2, Callback = function(v) prediction = v end})
 AimGroup:AddToggle("Triggerbot", {Text = "Triggerbot", Default = false, Callback = function(v) triggerbot = v end})
 AimGroup:AddToggle("Wallbang", {Text = "Wallbang / Magic Bullet", Default = false, Callback = function(v) wallbang = v end})
 
--- Visuals Tab
 local VisualsTab = Tabs.Visuals
 local EspGroup = VisualsTab:AddLeftGroupbox("ESP")
 EspGroup:AddToggle("ESP", {Text = "Box + Name + Health + Distance", Default = false, Callback = function(v) espEnabled = v end})
@@ -92,17 +90,15 @@ EspGroup:AddToggle("Chams", {Text = "Real Highlight Chams", Default = false, Cal
     end
 end})
 
--- Movement Tab
 local MovementTab = Tabs.Movement
 local MoveGroup = MovementTab:AddLeftGroupbox("Movement")
 MoveGroup:AddToggle("Fly", {Text = "Fly", Default = false, Callback = function(v) flyEnabled = v end})
-MoveGroup:AddSlider("FlySpeed", {Text = "Fly Speed", Default = 60, Min = 10, Max = 300, Callback = function(v) flySpeed = v end})
+MoveGroup:AddSlider("FlySpeed", {Text = "Fly Speed", Default = 60, Min = 10, Max = 300, Rounding = 0, Callback = function(v) flySpeed = v end})
 MoveGroup:AddToggle("SpeedHack", {Text = "Speed Hack", Default = false, Callback = function(v) speedHack = v end})
-MoveGroup:AddSlider("WalkSpeed", {Text = "WalkSpeed", Default = 50, Min = 16, Max = 250, Callback = function(v) walkSpeed = v end})
+MoveGroup:AddSlider("WalkSpeed", {Text = "WalkSpeed", Default = 50, Min = 16, Max = 250, Rounding = 0, Callback = function(v) walkSpeed = v end})
 MoveGroup:AddToggle("InfiniteJump", {Text = "Infinite Jump", Default = false, Callback = function(v) infJump = v end})
 MoveGroup:AddToggle("NoClip", {Text = "NoClip", Default = false, Callback = function(v) noclip = v end})
 
--- Misc Tab
 local MiscTab = Tabs.Misc
 local MiscGroup = MiscTab:AddLeftGroupbox("Misc")
 MiscGroup:AddToggle("AntiKatana", {Text = "Anti-Katana", Default = false, Callback = function(v) antiKatana = v end})
@@ -110,11 +106,11 @@ MiscGroup:AddToggle("SkinChanger", {Text = "Rainbow Skin Changer", Default = fal
 
 Library:Notify({
     Title = "Unnamed Enhancements",
-    Content = "✅ Fully Loaded!\nClick tab names at the TOP to switch.\nPress INSERT or RightShift to toggle menu.",
-    Duration = 10
+    Content = "✅ Loaded Successfully!\nAll sliders fixed.\nPress INSERT or RightShift to toggle.",
+    Duration = 8
 })
 
-print("✅ All 4 Tabs Created - Combat, Visuals, Movement, Misc visible at top!")
+print("✅ UI Loaded - All tabs & sliders fixed!")
 
 -- ==================== FOV CIRCLE ====================
 RunService.RenderStepped:Connect(function()
@@ -167,24 +163,10 @@ local function createESP(plr)
         distance = Drawing.new("Text")
     }
     local d = espDrawings[plr]
-    d.box.Thickness = 2
-    d.box.Color = Color3.new(1,0,0)
-    d.box.Transparency = 1
-    d.box.Filled = false
-
-    d.name.Size = 14
-    d.name.Center = true
-    d.name.Outline = true
-    d.name.Color = Color3.new(1,1,1)
-
-    d.healthBar.Color = Color3.new(0,1,0)
-    d.healthBar.Thickness = 1
-    d.healthBar.Filled = true
-
-    d.distance.Size = 13
-    d.distance.Center = true
-    d.distance.Outline = true
-    d.distance.Color = Color3.new(1,1,1)
+    d.box.Thickness = 2; d.box.Color = Color3.new(1,0,0); d.box.Transparency = 1; d.box.Filled = false
+    d.name.Size = 14; d.name.Center = true; d.name.Outline = true; d.name.Color = Color3.new(1,1,1)
+    d.healthBar.Color = Color3.new(0,1,0); d.healthBar.Thickness = 1; d.healthBar.Filled = true
+    d.distance.Size = 13; d.distance.Center = true; d.distance.Outline = true; d.distance.Color = Color3.new(1,1,1)
 end
 
 RunService.RenderStepped:Connect(function()
@@ -227,7 +209,8 @@ RunService.RenderStepped:Connect(function()
                 d.healthBar.Position = Vector2.new(rootPos.X - width/2 - 8, top.Y + height * (1 - healthPercent))
                 d.healthBar.Visible = true
 
-                local dist = math.floor((root.Position - (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart.Position or Vector3.new())).Magnitude)
+                local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                local dist = myRoot and math.floor((root.Position - myRoot.Position).Magnitude) or 0
                 d.distance.Text = dist .. " studs"
                 d.distance.Position = Vector2.new(rootPos.X, bottom.Y + 5)
                 d.distance.Visible = true
@@ -253,7 +236,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ==================== GET NEAREST ENEMY (for Ragebot & Silent Aim) ====================
+-- ==================== GET NEAREST ENEMY ====================
 local function getNearestEnemy()
     local closest, shortest = nil, math.huge
     local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -274,20 +257,20 @@ end
 RunService.RenderStepped:Connect(function()
     if not ragebot then return end
     local target = getNearestEnemy()
-    if not target or not LocalPlayer.Character then return end
-    local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-    if tool then
-        local hrp = LocalPlayer.Character.HumanoidRootPart
-        hrp.CFrame = CFrame.lookAt(hrp.Position, target.Position)
-        mouse1click()
+    if target and LocalPlayer.Character then
+        local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
+        if tool then
+            local hrp = LocalPlayer.Character.HumanoidRootPart
+            hrp.CFrame = CFrame.lookAt(hrp.Position, target.Position)
+            mouse1click()
+        end
     end
 end)
 
--- ==================== SILENT AIM + WALLBANG + ANTI-KATANA HOOK ====================
+-- ==================== SILENT AIM + ANTI-KATANA ====================
 local oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
     local args = {...}
     local method = getnamecallmethod()
-
     if (silentAim or ragebot) and (method == "FireServer" or method == "InvokeServer") then
         local name = self.Name:lower()
         if name:find("bullet") or name:find("shoot") or name:find("hit") or name:find("damage") then
@@ -298,19 +281,16 @@ local oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
             end
         end
     end
-
     if antiKatana and (method == "FireServer" or method == "InvokeServer") then
         local name = self.Name:lower()
         if name:find("stab") or name:find("katana") or name:find("knife") or name:find("damage") then
             return
         end
     end
-
     return oldNamecall(self, unpack(args))
 end)
 
--- ==================== MOVEMENT FEATURES ====================
--- Fly
+-- ==================== MOVEMENT ====================
 RunService.RenderStepped:Connect(function()
     if flyEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local hrp = LocalPlayer.Character.HumanoidRootPart
@@ -334,65 +314,54 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Speed Hack
 RunService.RenderStepped:Connect(function()
     if speedHack and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
         LocalPlayer.Character.Humanoid.WalkSpeed = walkSpeed
     end
 end)
 
--- Infinite Jump
 UserInputService.JumpRequest:Connect(function()
     if infJump and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
         LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
     end
 end)
 
--- NoClip
 RunService.Stepped:Connect(function()
     if noclip and LocalPlayer.Character then
         for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-            end
+            if part:IsA("BasePart") then part.CanCollide = false end
         end
     end
 end)
 
--- Triggerbot
 RunService.RenderStepped:Connect(function()
-    if not triggerbot then return end
-    local target = Mouse.Target
-    if target and target.Parent then
-        local plr = Players:GetPlayerFromCharacter(target.Parent)
-        if plr and plr ~= LocalPlayer then
-            mouse1click()
+    if triggerbot then
+        local target = Mouse.Target
+        if target and target.Parent then
+            local plr = Players:GetPlayerFromCharacter(target.Parent)
+            if plr and plr ~= LocalPlayer then mouse1click() end
         end
     end
 end)
 
--- Rainbow Skin Changer
 RunService.RenderStepped:Connect(function()
     if skinChanger and LocalPlayer.Character then
         local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
         if tool then
             local handle = tool:FindFirstChild("Handle")
-            if handle then
-                handle.Color = Color3.fromHSV(tick() % 5 / 5, 1, 1)
-            end
+            if handle then handle.Color = Color3.fromHSV(tick() % 5 / 5, 1, 1) end
         end
     end
 end)
 
--- ==================== OPEN/CLOSE KEY (INSERT + RightShift) ====================
+-- ==================== OPEN/CLOSE ====================
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Enum.KeyCode.Insert or input.KeyCode == Enum.KeyCode.RightShift then
         Window:Toggle()
-        print("🟢 Menu toggled with INSERT / RightShift")
+        print("🟢 Menu toggled!")
     end
 end)
 
-print("✅ Unnamed Enhancements FULLY LOADED!")
-print("📌 Press INSERT or RightShift to open/close")
-print("📌 Click the tab names at the TOP to switch between Combat, Visuals, Movement, Misc")
+print("✅ FULL SCRIPT LOADED - No more rounding errors!")
+print("📌 Press INSERT or RightShift to open/close menu")
